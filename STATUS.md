@@ -87,6 +87,29 @@ the turret pattern to the other, put the wheelbase (±62) along the long axis,
 then re-run QC and re-render. The mock viewer shows the clip honestly —
 explode it and look at the wheel corners.
 
+## 2026-08-29 — shield died, architecture pivoted
+
+The Inland L298P shield took the 3S pack reverse-polarity (BAT + to −) and
+its motor stage is dead: logic LED lives, no channel moves. Uno, motors,
+and pack survived. New electrical architecture, replacing HANDOFF §3's
+open decision with a hybrid of both options:
+
+- **Wheels:** TWO L298N modules, one per side, each board's two channels
+  jumped together (IN1↔IN3, IN2↔IN4, ENA↔ENB) so one motor per 2 A channel
+  but only 6 Uno pins total. Left board → D3/D4/D6, right → D7/D8/D5.
+- **Servos:** PCA9685 on the Pi's I²C. Roster changed from 3× MG996R:
+  ch0 probe = MG996R (mandatory — force calc), ch1 pan = **SG90** (OK only
+  because the thrust collar carries the moment; NOTE the printed turret
+  base pocket is MG996R-sized — needs re-parameterizing, fold into the
+  deck-fix task), ch2 tilt = MG996R.
+- **Firmware v2** (`rover_motion.ino`): wheels-only, PROBE/PAN/TILT/HOME
+  removed, STATUS is now `OK <drive> <pwm> <uptime>`, MAX_PWM 160 for
+  direct-3S operation. `pi/actuators.py` owns the servos (slew, never-park-
+  loaded via `sample()`), and the **probe-vs-motion interlock now lives on
+  the Pi**: check `ProbeTurret.probe_deployed` before any drive command.
+- Bench sketches: `firmware/motor_test/` (old shield, 4-channel),
+  `firmware/motor_test_l298n/` (current), `pi/servo_test.py` (PCA9685).
+
 ## Still open (HANDOFF §7 — answers needed, don't guess)
 
 Pot spacing, wheel diameter, TT gearbox gauge, MG996R gauge, and the

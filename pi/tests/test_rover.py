@@ -64,29 +64,28 @@ def test_ping_and_drive_commands_send_protocol_lines():
 
 
 def test_err_reply_raises_with_reason():
-    r, _ = make_rover(responses={"PROBE": ["ERR moving"]})
+    r, _ = make_rover(responses={"FWD": ["ERR bad_args"]})
     with pytest.raises(RoverCommandError) as ei:
-        r.probe(100)
-    assert ei.value.reason == "moving"
+        r.forward(800, 150)
+    assert ei.value.reason == "bad_args"
 
 
 def test_status_parses_all_fields():
-    r, _ = make_rover(responses={"STATUS": ["OK FWD 150 0 90 90 1 12345"]})
+    r, _ = make_rover(responses={"STATUS": ["OK FWD 150 12345"]})
     st = r.status()
-    assert (st.drive, st.pwm, st.probe, st.pan, st.tilt, st.settled, st.uptime_ms) == \
-        ("FWD", 150, 0, 90, 90, True, 12345)
+    assert (st.drive, st.pwm, st.uptime_ms) == ("FWD", 150, 12345)
 
 
 def test_malformed_status_raises():
-    r, _ = make_rover(responses={"STATUS": ["OK FWD 150 nonsense"]})
+    r, _ = make_rover(responses={"STATUS": ["OK FWD nonsense 99"]})
     with pytest.raises(RoverError):
         r.status()
 
 
 def test_command_timeout_raises():
-    r, _ = make_rover(responses={"PROBE": []})  # firmware never answers
+    r, _ = make_rover(responses={"FWD": []})  # firmware never answers
     with pytest.raises(RoverTimeout):
-        r.probe(50)
+        r.forward(500, 100)
 
 
 def test_unexpected_ready_means_mcu_reset():
@@ -96,8 +95,7 @@ def test_unexpected_ready_means_mcu_reset():
 
 
 def test_wait_for_stop_polls_until_idle():
-    replies = iter(["OK FWD 150 0 90 90 1 100", "OK FWD 150 0 90 90 1 200",
-                    "OK IDLE 0 0 90 90 1 300"])
+    replies = iter(["OK FWD 150 100", "OK FWD 150 200", "OK IDLE 0 300"])
     r, fake = make_rover(responses={"STATUS": [lambda f: next(replies)]})
     st = r.wait_for_stop(timeout=2.0, poll=0.01)
     assert st.drive == "IDLE"
@@ -107,7 +105,6 @@ def test_wait_for_stop_polls_until_idle():
 def test_client_side_validation():
     r, fake = make_rover()
     for bad in (lambda: r.forward(0, 100), lambda: r.forward(800, 300),
-                lambda: r.probe(101), lambda: r.pan(181),
                 lambda: r.spin(300, 100, "X")):
         with pytest.raises(ValueError):
             bad()

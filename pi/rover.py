@@ -1,10 +1,14 @@
-"""Serial driver for rover_motion.ino (HANDOFF.md §4 protocol).
+"""Serial driver for rover_motion.ino v2 (wheels only — servos live on the
+Pi's PCA9685, see actuators.py).
 
 Connection handling only — no sequencing logic. The firmware is a serial
 slave: every drive command is timed and auto-stops, and a 400 ms host
 watchdog cuts the motors if we go silent while the wheels turn. That means
 the caller MUST keep talking during motion — use wait_for_stop(), which
 polls STATUS and doubles as the watchdog keepalive.
+
+SAFETY (interlock moved here from the v1 firmware): never call forward/
+reverse/spin while actuators.ProbeTurret.probe_deployed is True.
 
 Opening the serial port resets the MCU. connect() absorbs that by waiting
 for the READY banner instead of guessing with a sleep.
@@ -36,10 +40,6 @@ class RoverCommandError(RoverError):
 class RoverStatus:
     drive: str        # IDLE | FWD | REV | SPINL | SPINR
     pwm: int
-    probe: int        # 0 = retracted, 100 = fully inserted
-    pan: int          # degrees
-    tilt: int         # degrees
-    settled: bool     # all servos at their targets
     uptime_ms: int
 
 
@@ -136,33 +136,14 @@ class Rover:
     def stop(self) -> None:
         self._command("STOP")
 
-    def probe(self, pct: int) -> None:
-        """0 = retracted, 100 = fully inserted. Refused while driving.
-        Never park the probe loaded: insert, dwell, retract (HANDOFF §4)."""
-        if not 0 <= pct <= 100:
-            raise ValueError("probe pct must be 0-100")
-        self._command(f"PROBE {pct}")
-
-    def pan(self, deg: int) -> None:
-        self._command(f"PAN {self._deg(deg)}")
-
-    def tilt(self, deg: int) -> None:
-        self._command(f"TILT {self._deg(deg)}")
-
-    def home(self) -> None:
-        self._command("HOME")
-
     def status(self) -> RoverStatus:
         payload = self._command("STATUS")
         parts = payload.split()
-        if len(parts) != 7:
+        if len(parts) != 3:
             raise RoverError(f"malformed STATUS reply: {payload!r}")
         try:
-            return RoverStatus(
-                drive=parts[0], pwm=int(parts[1]), probe=int(parts[2]),
-                pan=int(parts[3]), tilt=int(parts[4]),
-                settled=parts[5] == "1", uptime_ms=int(parts[6]),
-            )
+            return RoverStatus(drive=parts[0], pwm=int(parts[1]),
+                               uptime_ms=int(parts[2]))
         except ValueError as e:
             raise RoverError(f"malformed STATUS reply: {payload!r}") from e
 
@@ -180,17 +161,6 @@ class Rover:
                 raise RoverTimeout("drive did not stop in time")
             time.sleep(poll)
 
-    def wait_for_settled(self, timeout: float = 10.0, poll: float = 0.1) -> RoverStatus:
-        """Poll STATUS until all servos reach their targets (~83°/s slew)."""
-        deadline = time.monotonic() + timeout
-        while True:
-            st = self.status()
-            if st.settled:
-                return st
-            if time.monotonic() > deadline:
-                raise RoverTimeout("servos did not settle in time")
-            time.sleep(poll)
-
     @staticmethod
     def _ms(ms: int) -> int:
         if not 1 <= ms <= 10000:
@@ -200,11 +170,6 @@ class Rover:
     @staticmethod
     def _pwm(pwm: int) -> int:
         if not 0 <= pwm <= 255:
-            raise ValueError("pwm must be 0-255 (firmware caps at 200)")
+            raise ValueError("pwm must be 0-255 (firmware caps at 160)")
         return pwm
 
-    @staticmethod
-    def _deg(deg: int) -> int:
-        if not 0 <= deg <= 180:
-            raise ValueError("deg must be 0-180")
-        return deg
