@@ -89,6 +89,13 @@ explode it and look at the wheel corners.
 
 ## Still open (HANDOFF §7 — answers needed, don't guess)
 
-Pot spacing, wheel diameter, TT gearbox gauge, MG996R gauge, LiPo case
-dimensions, and the A/B-pairing vs PCA9685 wiring decision. Plus §8 task 5
-(row sequencing) — blocked on the stop-at-plant sensing decision.
+Pot spacing, wheel diameter, TT gearbox gauge, MG996R gauge, and the
+A/B-pairing vs PCA9685 wiring decision. Plus §8 task 5 (row sequencing) —
+blocked on the stop-at-plant sensing decision.
+
+**LiPo answered 2026-08-29** (Amazon listing, Tosiicop 2-pack): 3S 11.1 V
+2000 mAh **30C** (not 10C as HANDOFF §2 said — 60 A short-circuit capable,
+the inline fuse is not optional), 106 × 18 × 20 mm, 73 g, SM-2P discharge
+plug + XH-4P balance, mini-Tamiya adapter included. Fits the strap-tray
+cradle easily. All four TT motors are currently wired to shield channels
+A–D for bench testing with firmware/motor_test/motor_test.ino.
