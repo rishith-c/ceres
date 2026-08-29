@@ -1,8 +1,11 @@
 // rover_motion.ino v2 — Field Triage Rover wheel controller
 //
-// Target: Arduino Uno R3 + TWO L298N modules (one per side, channels jumped:
-// each board's IN1<->IN3, IN2<->IN4, ENA<->ENB tied together), one TT motor
-// per L298 channel. The original Inland L298P shield died to reverse polarity.
+// Target: Arduino Uno R3 + TWO L298N modules, one per side, all 12 control
+// pins wired independently (LastMinuteEngineers-style), one TT motor per
+// L298 channel. The original Inland L298P shield died to reverse polarity.
+//
+// Board 1 = LEFT  (front-left OUT1/2, rear-left OUT3/4):  9 8 7 5 4 3
+// Board 2 = RIGHT (front-right OUT1/2, rear-right OUT3/4): 10 12 13 A0 A1 11
 //
 // ARCHITECTURE CHANGE from v1: servos moved to a PCA9685 on the Pi (HANDOFF
 // §3 resolution 2). This board is wheels-only; PROBE/PAN/TILT/HOME are gone
@@ -20,12 +23,14 @@
 // Rules kept from v1: IN pins only digitalWrite, EN pins only analogWrite,
 // stop is analogWrite(EN, 0); no untimed motion; host watchdog.
 
-const uint8_t L_IN1 = 3, L_IN2 = 4, L_EN = 6;   // left board  (both left motors)
-const uint8_t R_IN1 = 7, R_IN2 = 8, R_EN = 5;   // right board (both right motors)
+//                       EN  IN-a IN-b        (per motor: one EN + an IN pair)
+const uint8_t FL[3] = {  9,  8,   7 };   // front-left   board1 ENA/IN1/IN2
+const uint8_t RL[3] = {  3,  5,   4 };   // rear-left    board1 ENB/IN3/IN4
+const uint8_t FR[3] = { 10, 12,  13 };   // front-right  board2 ENA/IN1/IN2
+const uint8_t RR[3] = { 11, A0,  A1 };   // rear-right   board2 ENB/IN3/IN4
 
-// Flip per side if that side runs backward — never touch the EN pins.
-const bool L_FWD_HIGH = true;
-const bool R_FWD_HIGH = true;
+// Flip per motor if it runs backward — never touch the EN pins.
+const bool FWD_HIGH[4] = { true, true, true, true };   // FL RL FR RR
 
 // 3-6 V TT motors on a ~9 V rail (3S minus the L298 drop): 160/255 duty
 // averages ~5.6 V at the motor. On the 8.5 V buck rail this could rise, but
@@ -45,25 +50,29 @@ char lineBuf[48];
 uint8_t lineLen = 0;
 bool lineOverflow = false;
 
+const uint8_t* MOTOR[4] = { FL, RL, FR, RR };
+
 void stopMotors() {
-  analogWrite(L_EN, 0);
-  analogWrite(R_EN, 0);
+  for (uint8_t m = 0; m < 4; m++) analogWrite(MOTOR[m][0], 0);
   drive = IDLE;
   drivePwm = 0;
 }
 
-void setSide(bool left, bool fwd) {
-  bool h = left ? (fwd == L_FWD_HIGH) : (fwd == R_FWD_HIGH);
-  digitalWrite(left ? L_IN1 : R_IN1, h ? HIGH : LOW);
-  digitalWrite(left ? L_IN2 : R_IN2, h ? LOW : HIGH);
+void setMotor(uint8_t m, bool fwd, uint8_t pwm) {
+  bool h = (fwd == FWD_HIGH[m]);
+  digitalWrite(MOTOR[m][1], h ? HIGH : LOW);
+  digitalWrite(MOTOR[m][2], h ? LOW : HIGH);
+  analogWrite(MOTOR[m][0], pwm);
 }
 
 void startDrive(DriveState d, unsigned long ms, uint8_t pwm) {
   if (pwm > MAX_PWM) pwm = MAX_PWM;
-  setSide(true, d == FWD || d == SPINR);
-  setSide(false, d == FWD || d == SPINL);
-  analogWrite(L_EN, pwm);
-  analogWrite(R_EN, pwm);
+  bool leftFwd = (d == FWD || d == SPINR);
+  bool rightFwd = (d == FWD || d == SPINL);
+  setMotor(0, leftFwd, pwm);   // FL
+  setMotor(1, leftFwd, pwm);   // RL
+  setMotor(2, rightFwd, pwm);  // FR
+  setMotor(3, rightFwd, pwm);  // RR
   drive = d;
   drivePwm = pwm;
   driveStopAt = millis() + ms;
@@ -131,12 +140,12 @@ void handleLine(char* line) {
 }
 
 void setup() {
-  const uint8_t pins[] = { L_IN1, L_IN2, L_EN, R_IN1, R_IN2, R_EN };
-  for (uint8_t i = 0; i < 6; i++) pinMode(pins[i], OUTPUT);
+  for (uint8_t m = 0; m < 4; m++)
+    for (uint8_t k = 0; k < 3; k++) pinMode(MOTOR[m][k], OUTPUT);
   stopMotors();
   Serial.begin(115200);
   lastRxMs = millis();
-  Serial.println(F("READY rover_motion 2.0"));
+  Serial.println(F("READY rover_motion 2.1"));
 }
 
 void loop() {

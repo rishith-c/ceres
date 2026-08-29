@@ -94,9 +94,13 @@ its motor stage is dead: logic LED lives, no channel moves. Uno, motors,
 and pack survived. New electrical architecture, replacing HANDOFF §3's
 open decision with a hybrid of both options:
 
-- **Wheels:** TWO L298N modules, one per side, each board's two channels
-  jumped together (IN1↔IN3, IN2↔IN4, ENA↔ENB) so one motor per 2 A channel
-  but only 6 Uno pins total. Left board → D3/D4/D6, right → D7/D8/D5.
+- **Wheels:** TWO L298N modules, one per side, all 12 control pins wired
+  independently (per the LastMinuteEngineers diagram, at the builder's
+  request). Board 1 = LEFT: ENA 9, IN1 8, IN2 7, IN3 5, IN4 4, ENB 3.
+  Board 2 = RIGHT: ENA 10, IN1 12, IN2 13, IN3 A0, IN4 A1, ENB 11.
+  Battery daisy-chain: pack + → board1 +12V → jumper → board2 +12V; pack −
+  → board1 GND → jumper → board2 GND; one wire board1 GND → Uno GND.
+  Per-motor direction flips live in FWD_HIGH[] in the firmware.
 - **Servos:** PCA9685 on the Pi's I²C. Roster changed from 3× MG996R:
   ch0 probe = MG996R (mandatory — force calc), ch1 pan = **SG90** (OK only
   because the thrust collar carries the moment; NOTE the printed turret
