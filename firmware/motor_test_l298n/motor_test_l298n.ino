@@ -1,8 +1,8 @@
 // motor_test_l298n.ino — bench test, TWO L298N modules, all 12 pins wired
-// independently (LastMinuteEngineers-style wiring).
+// independently (LastMinuteEngineers-style wiring). Uno or Mega.
 //
 // Board 1 = LEFT:  ENA->9  IN1->8  IN2->7  IN3->5  IN4->4  ENB->3
-// Board 2 = RIGHT: ENA->10 IN1->12 IN2->13 IN3->A0 IN4->A1 ENB->11
+// Board 2 = RIGHT: ENA->10 IN1->11 IN2->12 IN3->13 IN4->2 ENB->6
 // Front motors on each board's OUT1/OUT2, rear motors on OUT3/OUT4.
 //
 // Serial monitor at 115200, wheels OFF the ground:
@@ -14,8 +14,8 @@
 //                       EN  IN-a IN-b
 const uint8_t FL[3] = {  9,  8,   7 };
 const uint8_t RL[3] = {  3,  5,   4 };
-const uint8_t FR[3] = { 10, 12,  13 };
-const uint8_t RR[3] = { 11, A0,  A1 };
+const uint8_t FR[3] = { 10, 11,  12 };
+const uint8_t RR[3] = {  6, 13,   2 };
 const uint8_t* MOTOR[4] = { FL, RL, FR, RR };
 const char* NAME[4] = { "FRONT-LEFT", "REAR-LEFT", "FRONT-RIGHT", "REAR-RIGHT" };
 

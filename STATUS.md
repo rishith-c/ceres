@@ -96,8 +96,10 @@ open decision with a hybrid of both options:
 
 - **Wheels:** TWO L298N modules, one per side, all 12 control pins wired
   independently (per the LastMinuteEngineers diagram, at the builder's
-  request). Board 1 = LEFT: ENA 9, IN1 8, IN2 7, IN3 5, IN4 4, ENB 3.
-  Board 2 = RIGHT: ENA 10, IN1 12, IN2 13, IN3 A0, IN4 A1, ENB 11.
+  request), now on an **Arduino Mega 2560** (pin map also works on an Uno).
+  Board 1 = LEFT: ENA 9, IN1 8, IN2 7, IN3 5, IN4 4, ENB 3 (verified working
+  with the LME demo). Board 2 = RIGHT: ENA 10, IN1 11, IN2 12, IN3 13,
+  IN4 2, ENB 6.
   Battery daisy-chain: pack + → board1 +12V → jumper → board2 +12V; pack −
   → board1 GND → jumper → board2 GND; one wire board1 GND → Uno GND.
   Per-motor direction flips live in FWD_HIGH[] in the firmware.
@@ -112,7 +114,9 @@ open decision with a hybrid of both options:
   loaded via `sample()`), and the **probe-vs-motion interlock now lives on
   the Pi**: check `ProbeTurret.probe_deployed` before any drive command.
 - Bench sketches: `firmware/motor_test/` (old shield, 4-channel),
-  `firmware/motor_test_l298n/` (current), `pi/servo_test.py` (PCA9685).
+  `firmware/motor_test_l298n/` (interactive), `firmware/motor_demo_4x/`
+  (auto-looping LME-style), `pi/servo_test.py` (PCA9685). All compile for
+  Mega and Uno.
 
 ## Still open (HANDOFF §7 — answers needed, don't guess)
 

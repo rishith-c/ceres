@@ -1,11 +1,13 @@
 // rover_motion.ino v2 — Field Triage Rover wheel controller
 //
-// Target: Arduino Uno R3 + TWO L298N modules, one per side, all 12 control
-// pins wired independently (LastMinuteEngineers-style), one TT motor per
-// L298 channel. The original Inland L298P shield died to reverse polarity.
+// Target: Arduino Mega 2560 (also compiles for Uno R3 — same pin numbers)
+// + TWO L298N modules, one per side, all 12 control pins wired independently
+// (LastMinuteEngineers-style), one TT motor per L298 channel.
 //
-// Board 1 = LEFT  (front-left OUT1/2, rear-left OUT3/4):  9 8 7 5 4 3
-// Board 2 = RIGHT (front-right OUT1/2, rear-right OUT3/4): 10 12 13 A0 A1 11
+// Board 1 = LEFT  (front-left OUT1/2, rear-left OUT3/4):
+//   ENA 9, IN1 8, IN2 7, IN3 5, IN4 4, ENB 3
+// Board 2 = RIGHT (front-right OUT1/2, rear-right OUT3/4):
+//   ENA 10, IN1 11, IN2 12, IN3 13, IN4 2, ENB 6
 //
 // ARCHITECTURE CHANGE from v1: servos moved to a PCA9685 on the Pi (HANDOFF
 // §3 resolution 2). This board is wheels-only; PROBE/PAN/TILT/HOME are gone
@@ -26,8 +28,8 @@
 //                       EN  IN-a IN-b        (per motor: one EN + an IN pair)
 const uint8_t FL[3] = {  9,  8,   7 };   // front-left   board1 ENA/IN1/IN2
 const uint8_t RL[3] = {  3,  5,   4 };   // rear-left    board1 ENB/IN3/IN4
-const uint8_t FR[3] = { 10, 12,  13 };   // front-right  board2 ENA/IN1/IN2
-const uint8_t RR[3] = { 11, A0,  A1 };   // rear-right   board2 ENB/IN3/IN4
+const uint8_t FR[3] = { 10, 11,  12 };   // front-right  board2 ENA/IN1/IN2
+const uint8_t RR[3] = {  6, 13,   2 };   // rear-right   board2 ENB/IN3/IN4
 
 // Flip per motor if it runs backward — never touch the EN pins.
 const bool FWD_HIGH[4] = { true, true, true, true };   // FL RL FR RR
