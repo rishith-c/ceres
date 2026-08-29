@@ -64,6 +64,29 @@ Deltas from the (unseen) original — flagged, not silent:
   parsing/abstention paths are unit-tested with a fake client.
 - Run everything: `pytest pi/tests` (needs pytest; pyserial only on the Pi).
 
+## Defect found 2026-08-28 while building the mock assembly (cad/mock_assembly.py)
+
+**The deck's feature axes conflict with the designed track.** The deck is
+200 × 140 with the probe notch centered on a 200 mm edge and the turret on the
+opposite 200 mm edge — i.e. the features treat the 140 axis as fore-aft. But
+the motor clamps at (±56, ±62) put the wheels at X ≈ ±85 (track 170 as
+designed), and a Ø65 wheel (top at Z = 65) at X 72–98 passes straight through
+the deck plate corners (deck sits at Z ≈ 40–50, spanning X ±100). Track 170 /
+overall width 196 is only possible if the deck is ~140 wide at the wheel
+stations — the 200 axis must run fore-aft, which contradicts the probe/turret
+edge placement. Corroborating signs of the same axis mix-up in `make_deck()`:
+half of each motor-clamp bolt pair lands at y = ±74, off the ±70 plate edge;
+and `TRACK` is derived from `DECK_W` while the clamp X positions also use
+`DECK_W`. Separate 4–5 mm issue: gearbox top sits at Z = 44, so the deck
+bottom must be at 45 (per the code's own `DECK_Z` formula) — the README's
+"top face at Z = 45" would put the deck bottom at 40, inside the gearboxes.
+
+**Do not print `01_deck` until this is resolved.** Fix in chassis_module.py:
+keep the 200 axis fore-aft, move the probe slot/flange to one 140 edge and
+the turret pattern to the other, put the wheelbase (±62) along the long axis,
+then re-run QC and re-render. The mock viewer shows the clip honestly —
+explode it and look at the wheel corners.
+
 ## Still open (HANDOFF §7 — answers needed, don't guess)
 
 Pot spacing, wheel diameter, TT gearbox gauge, MG996R gauge, LiPo case
