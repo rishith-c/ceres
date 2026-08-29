@@ -1,0 +1,453 @@
+<title>Field Triage Rover Bench</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+  :root {
+    --bg: #14171c; --panel: #1c2027; --panel2: #23282f; --line: #2e343d;
+    --ink: #e8ebef; --muted: #8b93a1; --accent: #57b8a5; --accent-ink: #0d1512;
+    --mock: #e08a3c; --real: #8a9bb8; --grid: #262b33;
+    --shadow: 0 8px 28px rgba(0,0,0,.45);
+  }
+  :root:not([data-theme="dark"]) { --is-light: 1; }
+  @media (prefers-color-scheme: light) {
+    :root:not([data-theme="dark"]) {
+      --bg: #eef0ee; --panel: #f8f9f8; --panel2: #eceeec; --line: #d6dad6;
+      --ink: #22262c; --muted: #6a7280; --accent: #1f8a77; --accent-ink: #f2faf8;
+      --mock: #c26a1a; --real: #5d6f8f; --grid: #dde0dd;
+      --shadow: 0 8px 28px rgba(40,50,45,.16);
+    }
+  }
+  :root[data-theme="light"] {
+    --bg: #eef0ee; --panel: #f8f9f8; --panel2: #eceeec; --line: #d6dad6;
+    --ink: #22262c; --muted: #6a7280; --accent: #1f8a77; --accent-ink: #f2faf8;
+    --mock: #c26a1a; --real: #5d6f8f; --grid: #dde0dd;
+    --shadow: 0 8px 28px rgba(40,50,45,.16);
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    margin: 0; background: var(--bg); color: var(--ink);
+    font: 14px/1.45 "IBM Plex Sans", system-ui, sans-serif;
+    overflow: hidden;
+  }
+  #gl { position: fixed; inset: 0; width: 100%; height: 100%; display: block;
+        touch-action: none; cursor: grab; }
+  #gl.dragging { cursor: grabbing; }
+
+  header {
+    position: fixed; top: 0; left: 0; right: 0; padding: 14px 18px 10px;
+    display: flex; align-items: baseline; gap: 14px; pointer-events: none;
+    background: linear-gradient(color-mix(in srgb, var(--bg) 86%, transparent), transparent);
+  }
+  h1 { margin: 0; font: 600 17px/1 "Chakra Petch", system-ui, sans-serif;
+       letter-spacing: .04em; text-transform: uppercase; }
+  header .sub { color: var(--muted); font-size: 12.5px; }
+
+  .card {
+    position: fixed; background: var(--panel); border: 1px solid var(--line);
+    border-radius: 10px; box-shadow: var(--shadow);
+  }
+  #manifest {
+    top: 56px; left: 14px; width: 248px; max-height: calc(100% - 148px);
+    display: flex; flex-direction: column; overflow: hidden;
+  }
+  #manifest h2 {
+    margin: 0; padding: 10px 12px 8px; font: 600 11px/1 "Chakra Petch", sans-serif;
+    letter-spacing: .1em; text-transform: uppercase; color: var(--muted);
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  #manifest h2 button {
+    all: unset; cursor: pointer; color: var(--accent); font: 500 11px "IBM Plex Sans", sans-serif;
+    letter-spacing: 0; text-transform: none; padding: 2px 4px; border-radius: 4px;
+  }
+  #manifest h2 button:focus-visible { outline: 2px solid var(--accent); }
+  #legend { display: flex; gap: 12px; padding: 0 12px 8px; font-size: 11.5px; color: var(--muted); }
+  #legend i { display: inline-block; width: 9px; height: 9px; border-radius: 2px; margin-right: 5px; }
+  #plist { overflow-y: auto; border-top: 1px solid var(--line); padding: 4px 0; }
+  .prow {
+    display: flex; align-items: center; gap: 8px; padding: 4px 12px; cursor: pointer;
+    border: 0; background: none; width: 100%; text-align: left; color: var(--ink);
+    font: 400 12.5px/1.3 "IBM Plex Sans", sans-serif;
+  }
+  .prow:hover, .prow.sel { background: var(--panel2); }
+  .prow:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+  .prow .swatch { width: 9px; height: 9px; border-radius: 2px; flex: none; }
+  .prow .nm { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .prow.off .nm, .prow.off .swatch { opacity: .32; }
+  .prow .eye { color: var(--muted); font-size: 10px; flex: none; }
+  .badge {
+    flex: none; font: 500 9px/1 "IBM Plex Mono", monospace; letter-spacing: .06em;
+    padding: 2px 4px; border-radius: 3px;
+  }
+  .badge.mock { color: var(--mock); border: 1px solid var(--mock); }
+  .badge.real { color: var(--real); border: 1px solid var(--real); }
+
+  #controls {
+    bottom: 14px; left: 50%; transform: translateX(-50%);
+    display: flex; align-items: center; gap: 16px; padding: 10px 16px;
+    flex-wrap: wrap; justify-content: center; max-width: calc(100% - 24px);
+  }
+  .ctl { display: flex; align-items: center; gap: 8px; }
+  .ctl label { font: 500 10.5px "Chakra Petch", sans-serif; letter-spacing: .08em;
+               text-transform: uppercase; color: var(--muted); }
+  input[type=range] { accent-color: var(--accent); width: 130px; }
+  .btn {
+    background: var(--panel2); color: var(--ink); border: 1px solid var(--line);
+    border-radius: 6px; padding: 5px 10px; cursor: pointer;
+    font: 500 12px "IBM Plex Sans", sans-serif;
+  }
+  .btn:hover { border-color: var(--accent); }
+  .btn:focus-visible { outline: 2px solid var(--accent); }
+  .btn[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+  #views { display: flex; gap: 6px; }
+
+  #pick {
+    position: fixed; left: 14px; bottom: 14px; padding: 8px 12px;
+    font: 500 12.5px "IBM Plex Mono", monospace; display: none; align-items: center; gap: 8px;
+    max-width: min(420px, calc(100% - 28px));
+  }
+  #pick .swatch { width: 10px; height: 10px; border-radius: 2px; }
+  #hint {
+    position: fixed; right: 14px; bottom: 14px; color: var(--muted);
+    font-size: 11.5px; text-align: right; pointer-events: none;
+  }
+  #paneltoggle { display: none; }
+  @media (max-width: 720px) {
+    #manifest { display: none; }
+    #manifest.open { display: flex; width: min(280px, calc(100vw - 28px)); }
+    #paneltoggle { display: inline-block; position: fixed; top: 52px; left: 14px; z-index: 5; }
+    #manifest.open ~ #paneltoggle { left: unset; }
+    #hint { display: none; }
+    header .sub { display: none; }
+  }
+</style>
+
+<canvas id="gl"></canvas>
+
+<header>
+  <h1>Field Triage Rover Bench</h1>
+  <span class="sub">mock assembly &mdash; real chassis prints + amber placeholders (probe CAD lost)</span>
+</header>
+
+<section id="manifest" class="card" aria-label="Part manifest">
+  <h2>Parts <span></span><button id="allbtn" type="button">show all</button></h2>
+  <div id="legend"></div>
+  <div id="plist" role="list"></div>
+</section>
+<button id="paneltoggle" class="btn" type="button" aria-expanded="false">Parts</button>
+
+<div id="controls" class="card">
+  <div class="ctl"><label for="explode">Explode</label>
+    <input id="explode" type="range" min="0" max="100" value="0"></div>
+  <div class="ctl"><button id="spin" class="btn" type="button" aria-pressed="false">Spin</button></div>
+  <div id="views" class="ctl" role="group" aria-label="View presets">
+    <button class="btn" data-v="iso" type="button">Iso</button>
+    <button class="btn" data-v="front" type="button">Front</button>
+    <button class="btn" data-v="side" type="button">Side</button>
+    <button class="btn" data-v="top" type="button">Top</button>
+  </div>
+  <div class="ctl"><button id="reset" class="btn" type="button">Reset</button></div>
+</div>
+
+<div id="pick" class="card"><span class="swatch"></span><span id="pickname"></span></div>
+<div id="hint">drag&nbsp;orbit &middot; wheel&nbsp;zoom &middot; shift/right-drag&nbsp;pan &middot; click a part to name it</div>
+
+<script id="parts" type="application/json">__PARTS_JSON__</script>
+<script>
+"use strict";
+const DATA = JSON.parse(document.getElementById("parts").textContent);
+const canvas = document.getElementById("gl");
+const gl = canvas.getContext("webgl2", { antialias: true });
+
+// ---------- decode parts ----------
+const parts = DATA.map((p, i) => {
+  const bin = atob(p.pos);
+  const buf = new Uint8Array(bin.length);
+  for (let j = 0; j < bin.length; j++) buf[j] = bin.charCodeAt(j);
+  const pos = new Float32Array(buf.buffer);
+  let cx = 0, cy = 0, cz = 0, lo = [1e9,1e9,1e9], hi = [-1e9,-1e9,-1e9];
+  for (let j = 0; j < pos.length; j += 3) {
+    cx += pos[j]; cy += pos[j+1]; cz += pos[j+2];
+    for (let k = 0; k < 3; k++) { lo[k] = Math.min(lo[k], pos[j+k]); hi[k] = Math.max(hi[k], pos[j+k]); }
+  }
+  const n = pos.length / 3;
+  return { i, name: p.name, kind: p.kind, colorHex: p.color,
+           color: [1,3,5].map(k => parseInt(p.color.substr(k,2),16)/255),
+           pos, count: n, center: [cx/n, cy/n, cz/n], lo, hi, visible: true, hl: 0 };
+});
+const CENTER = [15, 0, 55];   // assembly focus (rover + spares)
+
+// ---------- tiny mat4 ----------
+function persp(fov, asp, near, far) {
+  const f = 1 / Math.tan(fov / 2), o = new Float32Array(16);
+  o[0] = f/asp; o[5] = f; o[10] = (far+near)/(near-far); o[11] = -1;
+  o[14] = 2*far*near/(near-far); return o;
+}
+function lookAt(e, t, up) {
+  let z = [e[0]-t[0], e[1]-t[1], e[2]-t[2]];
+  const zl = Math.hypot(...z); z = z.map(v => v/zl);
+  let x = [up[1]*z[2]-up[2]*z[1], up[2]*z[0]-up[0]*z[2], up[0]*z[1]-up[1]*z[0]];
+  const xl = Math.hypot(...x) || 1; x = x.map(v => v/xl);
+  const y = [z[1]*x[2]-z[2]*x[1], z[2]*x[0]-z[0]*x[2], z[0]*x[1]-z[1]*x[0]];
+  return new Float32Array([x[0],y[0],z[0],0, x[1],y[1],z[1],0, x[2],y[2],z[2],0,
+    -(x[0]*e[0]+x[1]*e[1]+x[2]*e[2]), -(y[0]*e[0]+y[1]*e[1]+y[2]*e[2]), -(z[0]*e[0]+z[1]*e[1]+z[2]*e[2]), 1]);
+}
+function mul(a, b) {
+  const o = new Float32Array(16);
+  for (let c = 0; c < 4; c++) for (let r = 0; r < 4; r++)
+    o[c*4+r] = a[r]*b[c*4] + a[4+r]*b[c*4+1] + a[8+r]*b[c*4+2] + a[12+r]*b[c*4+3];
+  return o;
+}
+
+// ---------- shaders ----------
+function sh(type, src) {
+  const s = gl.createShader(type); gl.shaderSource(s, src); gl.compileShader(s);
+  if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) throw gl.getShaderInfoLog(s);
+  return s;
+}
+const VS = `#version 300 es
+in vec3 aPos; uniform mat4 uMVP; uniform vec3 uOff; out vec3 vW;
+void main(){ vW = aPos + uOff; gl_Position = uMVP * vec4(vW, 1.0); }`;
+const FS = `#version 300 es
+precision highp float; in vec3 vW; out vec4 o;
+uniform vec3 uColor; uniform vec3 uEye; uniform float uHl; uniform float uPick; uniform float uLight;
+void main(){
+  if (uPick > 0.5) { o = vec4(uColor, 1.0); return; }
+  vec3 N = normalize(cross(dFdx(vW), dFdy(vW)));
+  vec3 L = normalize(uEye - vW);
+  float d = max(dot(N, L), 0.0);
+  float hemi = 0.5 + 0.5 * N.z;
+  vec3 c = uColor * (0.35 + 0.55 * d + 0.18 * hemi);
+  c = mix(c, vec3(uLight > 0.5 ? 0.1 : 1.0), uHl * 0.35);
+  o = vec4(c, 1.0);
+}`;
+const prog = gl.createProgram();
+gl.attachShader(prog, sh(gl.VERTEX_SHADER, VS));
+gl.attachShader(prog, sh(gl.FRAGMENT_SHADER, FS));
+gl.linkProgram(prog);
+if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) throw gl.getProgramInfoLog(prog);
+gl.useProgram(prog);
+const U = {};
+for (const n of ["uMVP","uOff","uColor","uEye","uHl","uPick","uLight"]) U[n] = gl.getUniformLocation(prog, n);
+const aPos = gl.getAttribLocation(prog, "aPos");
+
+for (const p of parts) {
+  p.vao = gl.createVertexArray(); gl.bindVertexArray(p.vao);
+  const b = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, b);
+  gl.bufferData(gl.ARRAY_BUFFER, p.pos, gl.STATIC_DRAW);
+  gl.enableVertexAttribArray(aPos); gl.vertexAttribPointer(aPos, 3, gl.FLOAT, false, 0, 0);
+}
+// ground grid as GL_LINES
+const gverts = [];
+for (let i = -10; i <= 14; i++) { gverts.push(i*25, -260, 0, i*25, 300, 0); }
+for (let j = -10; j <= 12; j++) { gverts.push(-250, j*25, 0, 350, j*25, 0); }
+const gridN = gverts.length / 3;
+const gridVao = gl.createVertexArray(); gl.bindVertexArray(gridVao);
+const gb = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, gb);
+gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(gverts), gl.STATIC_DRAW);
+gl.enableVertexAttribArray(aPos); gl.vertexAttribPointer(aPos, 3, gl.FLOAT, false, 0, 0);
+
+gl.enable(gl.DEPTH_TEST);
+
+// ---------- camera ----------
+const HOME = { theta: 0.75, phi: 0.42, r: 620 };
+let cam = { ...HOME }, explode = 0, spinning = false, needPick = false;
+const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+function eyePos() {
+  return [CENTER[0] + cam.r * Math.cos(cam.phi) * Math.sin(cam.theta),
+          CENTER[1] - cam.r * Math.cos(cam.phi) * Math.cos(cam.theta),
+          CENTER[2] + cam.r * Math.sin(cam.phi)];
+}
+let panOff = [0, 0, 0];
+
+function themeVals() {
+  const cs = getComputedStyle(document.documentElement);
+  const bg = cs.getPropertyValue("--bg").trim(), grid = cs.getPropertyValue("--grid").trim();
+  const toRgb = h => { const c = document.createElement("canvas").getContext("2d");
+    c.fillStyle = h; const v = c.fillStyle;
+    return [1,3,5].map(k => parseInt(v.substr(k,2),16)/255); };
+  return { bg: toRgb(bg), grid: toRgb(grid),
+           light: bg && toRgb(bg).reduce((a,b)=>a+b,0) > 1.5 ? 1 : 0 };
+}
+let theme = themeVals();
+matchMedia("(prefers-color-scheme: light)").addEventListener("change", () => { theme = themeVals(); });
+new MutationObserver(() => { theme = themeVals(); })
+  .observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
+
+function resize() {
+  const dpr = Math.min(devicePixelRatio || 1, 2);
+  canvas.width = innerWidth * dpr; canvas.height = innerHeight * dpr;
+}
+addEventListener("resize", resize); resize();
+
+let pickReq = null;
+function draw() {
+  gl.viewport(0, 0, canvas.width, canvas.height);
+  const picking = !!pickReq;
+  const [br, bgc, bb] = theme.bg;
+  gl.clearColor(picking ? 0 : br, picking ? 0 : bgc, picking ? 0 : bb, 1);
+  gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+  const eye = eyePos().map((v, i) => v + panOff[i]);
+  const tgt = CENTER.map((v, i) => v + panOff[i]);
+  const mvp = mul(persp(0.78, canvas.width / canvas.height, 2, 6000), lookAt(eye, tgt, [0,0,1]));
+  gl.uniformMatrix4fv(U.uMVP, false, mvp);
+  gl.uniform3fv(U.uEye, eye);
+  gl.uniform1f(U.uPick, picking ? 1 : 0);
+  gl.uniform1f(U.uLight, theme.light);
+  if (!picking) {
+    gl.uniform3fv(U.uColor, theme.grid); gl.uniform3fv(U.uOff, [0,0,0]); gl.uniform1f(U.uHl, 0);
+    gl.bindVertexArray(gridVao); gl.drawArrays(gl.LINES, 0, gridN);
+  }
+  for (const p of parts) {
+    if (!p.visible) continue;
+    const f = explode / 100;
+    const off = [ (p.center[0]-CENTER[0]) * f * 1.4,
+                  (p.center[1]-CENTER[1]) * f * 1.4,
+                  (p.center[2]-CENTER[2]) * f * 2.0 + f * 10 ];
+    gl.uniform3fv(U.uOff, off);
+    gl.uniform1f(U.uHl, picking ? 0 : p.hl);
+    gl.uniform3fv(U.uColor, picking
+      ? [((p.i + 1) & 255) / 255, (((p.i + 1) >> 8) & 255) / 255, 0]
+      : p.color);
+    gl.bindVertexArray(p.vao);
+    gl.drawArrays(gl.TRIANGLES, 0, p.count);
+  }
+  if (picking) {
+    const dpr = canvas.width / innerWidth;
+    const px = new Uint8Array(4);
+    gl.readPixels(Math.round(pickReq.x * dpr), canvas.height - Math.round(pickReq.y * dpr) - 1,
+                  1, 1, gl.RGBA, gl.UNSIGNED_BYTE, px);
+    const id = px[0] + (px[1] << 8) - 1;
+    pickReq.done(id >= 0 && id < parts.length ? parts[id] : null);
+    pickReq = null;
+    draw();  // repaint real colors
+  }
+}
+
+function frame(t) {
+  if (spinning) cam.theta += 0.004;
+  draw();
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+
+// ---------- input ----------
+let drag = null;
+const pts = new Map();
+canvas.addEventListener("pointerdown", e => {
+  canvas.setPointerCapture(e.pointerId);
+  pts.set(e.pointerId, [e.clientX, e.clientY]);
+  drag = { x: e.clientX, y: e.clientY, moved: 0, pan: e.shiftKey || e.button === 2 };
+  canvas.classList.add("dragging");
+});
+canvas.addEventListener("contextmenu", e => e.preventDefault());
+canvas.addEventListener("pointermove", e => {
+  if (!pts.has(e.pointerId)) return;
+  pts.set(e.pointerId, [e.clientX, e.clientY]);
+  if (pts.size === 2) {                                     // pinch zoom + pan
+    const [a, b] = [...pts.values()];
+    const d = Math.hypot(a[0]-b[0], a[1]-b[1]);
+    if (drag.pinch) {
+      cam.r = Math.min(2500, Math.max(120, cam.r * drag.pinch / d));
+      panBy((a[0]+b[0])/2 - drag.mx, (a[1]+b[1])/2 - drag.my);
+    }
+    drag.pinch = d; drag.mx = (a[0]+b[0])/2; drag.my = (a[1]+b[1])/2;
+    return;
+  }
+  if (!drag) return;
+  const dx = e.clientX - drag.x, dy = e.clientY - drag.y;
+  drag.moved += Math.abs(dx) + Math.abs(dy);
+  if (drag.pan) panBy(dx, dy);
+  else {
+    cam.theta += dx * 0.006;
+    cam.phi = Math.min(1.5, Math.max(-0.3, cam.phi + dy * 0.006));
+  }
+  drag.x = e.clientX; drag.y = e.clientY;
+});
+function panBy(dx, dy) {
+  const s = cam.r * 0.0012;
+  const ct = Math.cos(cam.theta), st = Math.sin(cam.theta);
+  panOff[0] -= (dx * ct) * s; panOff[1] -= (-dx * st) * s;
+  panOff[0] -= (dy * st * Math.sin(cam.phi)) * s;
+  panOff[1] -= (dy * ct * Math.sin(cam.phi)) * s;
+  panOff[2] += dy * Math.cos(cam.phi) * s;
+}
+canvas.addEventListener("pointerup", e => {
+  pts.delete(e.pointerId);
+  canvas.classList.remove("dragging");
+  if (drag && drag.moved < 6 && !drag.pan) {
+    pickReq = { x: e.clientX, y: e.clientY, done: showPick };
+  }
+  if (pts.size === 0) drag = null; else drag = { ...drag, pinch: null };
+});
+canvas.addEventListener("wheel", e => {
+  e.preventDefault();
+  cam.r = Math.min(2500, Math.max(120, cam.r * (1 + e.deltaY * 0.0012)));
+}, { passive: false });
+
+// ---------- UI ----------
+const plist = document.getElementById("plist");
+const legend = document.getElementById("legend");
+const nReal = parts.filter(p => p.kind === "real").length;
+legend.innerHTML =
+  `<span><i style="background:var(--real)"></i>${nReal} real prints</span>` +
+  `<span><i style="background:var(--mock)"></i>${parts.length - nReal} mock</span>`;
+const rows = parts.map(p => {
+  const b = document.createElement("button");
+  b.className = "prow"; b.setAttribute("role", "listitem");
+  b.innerHTML = `<span class="swatch" style="background:${p.colorHex}"></span>` +
+    `<span class="nm">${p.name}</span>` +
+    `<span class="badge ${p.kind}">${p.kind === "real" ? "PRINT" : "MOCK"}</span>` +
+    `<span class="eye">on</span>`;
+  b.addEventListener("click", () => {
+    p.visible = !p.visible;
+    b.classList.toggle("off", !p.visible);
+    b.querySelector(".eye").textContent = p.visible ? "on" : "off";
+  });
+  b.addEventListener("pointerenter", () => { p.hl = 1; });
+  b.addEventListener("pointerleave", () => { p.hl = 0; });
+  plist.appendChild(b);
+  return b;
+});
+document.getElementById("allbtn").addEventListener("click", () => {
+  parts.forEach((p, i) => { p.visible = true; rows[i].classList.remove("off");
+    rows[i].querySelector(".eye").textContent = "on"; });
+});
+
+const pick = document.getElementById("pick");
+let pickTimer = null, selRow = null;
+function showPick(p) {
+  if (selRow) { selRow.classList.remove("sel"); parts[rows.indexOf(selRow)].hl = 0; }
+  if (!p) { pick.style.display = "none"; selRow = null; return; }
+  pick.style.display = "flex";
+  pick.querySelector(".swatch").style.background = p.colorHex;
+  document.getElementById("pickname").textContent = p.name;
+  selRow = rows[p.i]; selRow.classList.add("sel");
+  selRow.scrollIntoView({ block: "nearest" });
+  p.hl = 1;
+  clearTimeout(pickTimer);
+  pickTimer = setTimeout(() => { p.hl = 0; }, 1600);
+}
+
+document.getElementById("explode").addEventListener("input", e => { explode = +e.target.value; });
+const spinBtn = document.getElementById("spin");
+function setSpin(v) { spinning = v; spinBtn.setAttribute("aria-pressed", String(v)); }
+spinBtn.addEventListener("click", () => setSpin(!spinning));
+setSpin(!reduced);
+
+const VIEWS = { iso: HOME, front: { theta: 0, phi: 0.10, r: 620 },
+  side: { theta: Math.PI/2, phi: 0.10, r: 620 }, top: { theta: 0, phi: 1.45, r: 700 } };
+document.querySelectorAll("#views .btn").forEach(b =>
+  b.addEventListener("click", () => { cam = { ...VIEWS[b.dataset.v] }; setSpin(false); }));
+document.getElementById("reset").addEventListener("click", () => {
+  cam = { ...HOME }; panOff = [0,0,0]; explode = 0;
+  document.getElementById("explode").value = 0; setSpin(!reduced);
+});
+
+const ptoggle = document.getElementById("paneltoggle");
+ptoggle.addEventListener("click", () => {
+  const m = document.getElementById("manifest");
+  m.classList.toggle("open");
+  ptoggle.setAttribute("aria-expanded", m.classList.contains("open"));
+});
+</script>
