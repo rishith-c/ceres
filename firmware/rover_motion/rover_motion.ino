@@ -101,9 +101,18 @@ void startDrive(DriveState d, unsigned long ms, uint8_t pwm) {
 }
 
 // ---- servos -----------------------------------------------------------------
+// The pan servo turned out to be continuous-rotation/broken: it spins on any
+// pulse, including center. Until a real positional servo replaces it, ch0
+// gets NO pulses at all (a pulseless servo goes limp and stays still).
+const bool PAN_ENABLED = false;
+
 // The MG90S (probe, ch1) binds at its end-stops: hard-fence it at the
 // pulse-write level. No command gets past this.
 void writeServoUs(uint8_t ch, float us) {
+  if (ch == CH_PAN && !PAN_ENABLED) {
+    pca.setPWM(ch, 0, 0);   // zero pulse width = servo limp, no spinning
+    return;
+  }
   if (ch == CH_PROBE) {
     if (us < US_PROBE_MIN) us = US_PROBE_MIN;
     if (us > US_MAX) us = US_MAX;
@@ -207,6 +216,7 @@ void handleLine(char* line) {
   } else if (strcmp(cmd, "PAN") == 0 || strcmp(cmd, "TILT") == 0) {
     long deg;
     if (!parseLong(strtok(NULL, " "), &deg, 0, 180)) { err("bad_args"); return; }
+    if (cmd[0] == 'P' && !PAN_ENABLED) { err("pan_disabled"); return; }
     targetUs[cmd[0] == 'P' ? CH_PAN : CH_TILT] = US_MIN + deg * 10.0;
     Serial.println(cmd[0] == 'P' ? F("OK PAN") : F("OK TILT"));
 
