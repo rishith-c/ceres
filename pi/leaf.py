@@ -25,23 +25,27 @@ PROMPT = """You are inspecting a single potted plant for a field triage rover.
 Look only at the plant canopy in this photo and answer:
 
 - "healthy": leaves look normal for the plant (color, texture, no lesions)
-- "anomalous": visible spots, lesions, mildew, chlorosis, necrosis, curling,
-  or other disease-consistent damage. Wilting ALONE is not anomalous — the
-  rover measures soil moisture separately.
+- "anomalous": visible trouble on the leaves. Two causes count:
+    disease — spots, lesions, mildew, rust, chlorosis, necrosis, curling
+    pest    — insects, mites, webbing, eggs, chew holes, sticky residue
+  Wilting ALONE is not anomalous — the rover measures soil moisture separately.
 - "abstain": you cannot make that call — leaves are not clearly visible,
   the image is blurry or dark, or there is no plant in frame.
 
-confidence is your 0-1 confidence in the verdict. If in doubt, abstain:
-a wrong flag is worse than "needs human inspection"."""
+Set "cause" to "disease" or "pest" when verdict is anomalous (pick the more
+likely one); otherwise "none". confidence is your 0-1 confidence in the
+verdict. If in doubt, abstain: a wrong flag is worse than "needs human
+inspection"."""
 
 SCHEMA = {
     "type": "object",
     "properties": {
         "verdict": {"type": "string", "enum": ["healthy", "anomalous", "abstain"]},
+        "cause": {"type": "string", "enum": ["disease", "pest", "none"]},
         "confidence": {"type": "number", "minimum": 0, "maximum": 1},
         "note": {"type": "string", "description": "one short sentence of evidence"},
     },
-    "required": ["verdict", "confidence", "note"],
+    "required": ["verdict", "cause", "confidence", "note"],
     "additionalProperties": False,
 }
 
@@ -99,5 +103,8 @@ def classify_leaf(image_path: str | Path, client=None) -> LeafReading:
     except (StopIteration, KeyError, ValueError, TypeError) as e:
         return _abstain(f"unparseable vision reply: {e}")
 
+    cause = data.get("cause", "none")
+    if cause not in ("disease", "pest", "none"):
+        cause = "none"
     return LeafReading(verdict=verdict, confidence=confidence,
-                       note=str(data.get("note", "")))
+                       note=str(data.get("note", "")), cause=cause)

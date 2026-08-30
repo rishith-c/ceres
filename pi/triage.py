@@ -35,6 +35,7 @@ class LeafReading:
     verdict: str       # "healthy" | "anomalous" | "abstain"
     confidence: float  # 0-1; ignored when verdict is "abstain"
     note: str = ""
+    cause: str = "none"   # "disease" | "pest" | "none" — detail, not fused
 
 
 @dataclass

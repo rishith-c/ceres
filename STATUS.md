@@ -1,5 +1,18 @@
 # Project status
 
+## 2026-08-30 — vision + scan pipeline ready for the Pi
+`pi/` now carries the whole per-plant inspection chain, hardware-free
+tested (45 tests): `camera.py` (C920 capture, warmup burst),
+`leaf.py` (Claude vision; verdict + **cause: disease vs pest** + abstain),
+`station.py` (`scan_plant()`: 4 fenced poses, staggered pan nudges,
+majority-with-abstention across frames, fused into a flag; moisture=None
+honestly abstains until the soil sensor is wired). Pi setup needs:
+`pip install pyserial anthropic opencv-python` + `ANTHROPIC_API_KEY`.
+Pi boots from USB (SD dead); SSH was not enabled in the image — fix by
+dropping `ssh` + `userconf.txt` on the boot partition. No plant-training
+data exists on the WC18 drive (industrial video only) — the VLM route is
+deliberate, per HANDOFF known-problems.
+
 ## MILESTONE 2026-08-29 late: full bench bring-up complete
 Every actuator verified moving under serial command on the Mega:
 wheels (timed + watchdog), probe (gentle, fenced), tilt (positional),

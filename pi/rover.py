@@ -154,6 +154,14 @@ class Rover:
     def tilt(self, deg: int) -> None:
         self._command(f"TILT {self._deg(deg)}")
 
+    def pan_nudge(self, ms: int, side: str) -> None:
+        """Timed nudge of the continuous pan servo (firmware cuts power after)."""
+        if side not in ("L", "R"):
+            raise ValueError("side must be 'L' or 'R'")
+        if not 1 <= ms <= 2000:
+            raise ValueError("ms must be 1-2000")
+        self._command(f"PANSPIN {ms} {side}")
+
     def home(self) -> None:
         self._command("HOME")
 
