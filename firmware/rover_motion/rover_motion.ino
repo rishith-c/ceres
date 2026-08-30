@@ -55,7 +55,9 @@ Adafruit_PWMServoDriver pca;
 const uint8_t CH_PAN = 0, CH_PROBE = 1, CH_TILT = 2;
 const int US_MIN = 600, US_MAX = 2400;       // pan/tilt range
 const int US_PROBE_MIN = 900;                // MG90S fence: probe never below 30 deg
-const float SLEW_US_PER_S = 1000.0;      // ~83 deg/s
+// Per-channel slew: pan/tilt ~83 deg/s; the probe crawls at ~35 deg/s so the
+// rack and pinion is never jerked (builder request 2026-08-29).
+const float SLEW_US_PER_S[3] = { 1000.0, 420.0, 1000.0 };  // ch0 pan, ch1 probe, ch2 tilt
 const uint8_t SERVO_TICK_MS = 20;
 const int HOME_US[3] = { 1500, US_PROBE_MIN, 1500 };  // pan 90, probe retracted(30deg), tilt 90
 
@@ -122,9 +124,10 @@ bool probeRetracted() {
 void servoTick() {
   unsigned long now = millis();
   if (now - lastServoTick < SERVO_TICK_MS) return;
-  float step = SLEW_US_PER_S * (now - lastServoTick) / 1000.0;
+  float dt = (now - lastServoTick) / 1000.0;
   lastServoTick = now;
   for (uint8_t i = 0; i < 3; i++) {
+    float step = SLEW_US_PER_S[i] * dt;
     float d = targetUs[i] - curUs[i];
     if (fabs(d) <= step) curUs[i] = targetUs[i];
     else curUs[i] += (d > 0 ? step : -step);
