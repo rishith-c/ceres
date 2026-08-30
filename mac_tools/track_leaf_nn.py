@@ -74,6 +74,9 @@ def main():
         return
     print(f"neural tracking from {BASE} — show Ceres a plant. q quits.")
     last_tilt = last_pan = 0.0
+    flip = FLIP_PAN
+    pan_probe = None      # (ex_before, direction) — auto-learns pan polarity
+    wrong_count = 0
     while True:
         ok, frame = cap.read()
         if not ok:
@@ -94,11 +97,24 @@ def main():
             if abs(ey) > TILT_DEADBAND and now - last_tilt > TILT_PERIOD:
                 cmd("tiltup" if ey < 0 else "tiltdown")
                 last_tilt = now
+            if pan_probe and now - last_pan > 1.0:
+                ex0, went_left = pan_probe
+                # if we nudged toward the leaf but the error grew, polarity is wrong
+                if abs(ex) > abs(ex0) + 0.03:
+                    wrong_count += 1
+                    if wrong_count >= 2:
+                        flip = not flip
+                        wrong_count = 0
+                        print("pan polarity auto-flipped")
+                else:
+                    wrong_count = 0
+                pan_probe = None
             if abs(ex) > PAN_DEADBAND and now - last_pan > PAN_COOLDOWN:
                 left = ex < 0
-                if FLIP_PAN:
+                if flip:
                     left = not left
                 cmd("panl" if left else "panr")
+                pan_probe = (ex, left)
                 last_pan = now
             cv2.rectangle(frame, (x, y), (x + w, y + h), (47, 143, 107), 3)
             cv2.putText(frame, label, (x, max(24, y - 8)),
