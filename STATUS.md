@@ -1,5 +1,12 @@
 # Project status
 
+## 2026-08-30 late — PI↔MEGA INTEGRATION LIVE
+Mega on the Pi's USB (/dev/ttyACM0). Rover Remote GUI (pi/drive_gui.py)
+runs as systemd service on :8081 — live MJPEG camera feed, hold-to-drive
+pad (600 ms bursts, watchdog-safe), tilt/pan/probe controls, live status.
+First Pi-commanded motion executed via the full chain (browser→Pi→serial→
+firmware). Dashboard on :8080. Both survive reboot.
+
 ## 2026-08-30 evening — Pi COMMISSIONED
 Pi 4 ("varun", user varun, 10.59.112.136 on campus net + RPi Connect as
 backup) boots from 128 GB USB (102 GB free), reachable by key-auth SSH
