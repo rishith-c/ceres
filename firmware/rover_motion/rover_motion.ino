@@ -5,8 +5,8 @@
 // Mega's I2C (SDA 20, SCL 21) — the PCA9685 makes its own pulses, so the old
 // Servo-library/Timer1 conflict does not exist here.
 //
-// Servo roster (as physically plugged, final 2026-08-29):
-//   ch0 pan   = MG996R
+// Servo roster (as physically plugged, re-confirmed 2026-08-29 late night):
+//   ch0 tilt  = MG996R (healthy — held center in the hand test)
 //   ch1 probe = MG90S  — BUILDER'S CHOICE against the force calc: ~12 N at
 //               stall vs 8.8 N loose-mix load (22 N in garden soil). Works
 //               only in very loose potting mix; if it hums without moving,
@@ -14,7 +14,8 @@
 //               Fenced to 900-2400 us (30-150 deg): "retracted" = 30 deg, so
 //               it never reaches its end-stop. 120 deg sweep = ~25.7 mm
 //               insertion (HANDOFF graceful-degradation case), not 35 mm.
-//   ch2 tilt  = MG996R
+//   ch2 pan   = spins continuously on any pulse (continuous-rotation or
+//               broken) -> DISABLED, gets no pulses. See PAN_ENABLED.
 //
 // Serial protocol (ASCII, newline-terminated), 115200 baud:
 //   PING                  -> OK PONG
@@ -52,14 +53,14 @@ const unsigned long MAX_DRIVE_MS = 10000;
 
 // ---- servos: PCA9685 --------------------------------------------------------
 Adafruit_PWMServoDriver pca;
-const uint8_t CH_PAN = 0, CH_PROBE = 1, CH_TILT = 2;
+const uint8_t CH_TILT = 0, CH_PROBE = 1, CH_PAN = 2;
 const int US_MIN = 600, US_MAX = 2400;       // pan/tilt range
 const int US_PROBE_MIN = 900;                // MG90S fence: probe never below 30 deg
 // Per-channel slew: pan/tilt ~83 deg/s; the probe ~50 deg/s — gentle on the
 // rack and pinion but not sluggish (builder-tuned 2026-08-29).
 const float SLEW_US_PER_S[3] = { 1000.0, 600.0, 1000.0 };  // ch0 pan, ch1 probe, ch2 tilt
 const uint8_t SERVO_TICK_MS = 20;
-const int HOME_US[3] = { 1500, US_PROBE_MIN, 1500 };  // pan 90, probe retracted(30deg), tilt 90
+const int HOME_US[3] = { 1500, US_PROBE_MIN, 1500 };  // tilt 90, probe retracted(30deg), pan(disabled)
 
 float curUs[3], targetUs[3];
 
