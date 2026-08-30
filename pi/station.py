@@ -16,6 +16,7 @@ Safety by construction:
 
 from __future__ import annotations
 
+import json
 import time
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -72,6 +73,18 @@ class PlantReport:
     def line(self) -> str:
         detail = f" [{self.leaf.cause}]" if self.leaf.cause != "none" else ""
         return f"{self.plant_id}: {self.result.flag.value}{detail} — {self.result.cause}"
+
+    def append_to(self, path: str | Path = "work/reports.jsonl") -> None:
+        """One JSONL row per report — the live dashboard reads this file."""
+        path = Path(path)
+        path.parent.mkdir(parents=True, exist_ok=True)
+        with path.open("a") as f:
+            f.write(json.dumps({
+                "plant_id": self.plant_id, "flag": self.result.flag.value,
+                "cause": self.result.cause, "leaf_cause": self.leaf.cause,
+                "moisture": self.moisture, "leaf_note": self.leaf.note,
+                "frames": self.frames, "ts": time.time(),
+            }) + "\n")
 
 
 def scan_plant(rover, camera, plant_id: str, out_dir: str | Path = "work/frames",
