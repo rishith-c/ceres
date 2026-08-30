@@ -5,9 +5,13 @@
 // Mega's I2C (SDA 20, SCL 21) — the PCA9685 makes its own pulses, so the old
 // Servo-library/Timer1 conflict does not exist here.
 //
-// Servo roster: ch0 probe = MG996R (force calc requires it),
-//               ch1 pan   = MG90S  (thrust collar carries the camera moment),
-//               ch2 tilt  = MG996R (holds the camera against gravity).
+// Servo roster (as physically plugged, 2026-08-29):
+//   ch0 tilt  = MG996R
+//   ch1 probe = MG90S  — BUILDER'S CHOICE against the force calc: ~12 N at
+//               stall vs 8.8 N loose-mix load (22 N in garden soil). Works
+//               only in very loose potting mix; if it hums without moving,
+//               send PROBE 0 immediately. MG996R remains the correct part.
+//   ch2 pan   = MG996R
 //
 // Serial protocol (ASCII, newline-terminated), 115200 baud:
 //   PING                  -> OK PONG
@@ -45,11 +49,11 @@ const unsigned long MAX_DRIVE_MS = 10000;
 
 // ---- servos: PCA9685 --------------------------------------------------------
 Adafruit_PWMServoDriver pca;
-const uint8_t CH_PROBE = 0, CH_PAN = 1, CH_TILT = 2;
+const uint8_t CH_TILT = 0, CH_PROBE = 1, CH_PAN = 2;
 const int US_MIN = 600, US_MAX = 2400;   // full range; the probe needs all of it
 const float SLEW_US_PER_S = 1000.0;      // ~83 deg/s
 const uint8_t SERVO_TICK_MS = 20;
-const int HOME_US[3] = { US_MIN, 1500, 1500 };  // probe retracted, pan/tilt 90
+const int HOME_US[3] = { 1500, US_MIN, 1500 };  // ch0 tilt 90, ch1 probe retracted, ch2 pan 90
 
 float curUs[3], targetUs[3];
 
@@ -118,9 +122,9 @@ void servoTick() {
   }
 }
 
-int probePct() { return (int)((curUs[0] - US_MIN) * 100.0 / (US_MAX - US_MIN) + 0.5); }
-int panDeg()   { return (int)((curUs[1] - US_MIN) / 10.0 + 0.5); }
-int tiltDeg()  { return (int)((curUs[2] - US_MIN) / 10.0 + 0.5); }
+int probePct() { return (int)((curUs[CH_PROBE] - US_MIN) * 100.0 / (US_MAX - US_MIN) + 0.5); }
+int panDeg()   { return (int)((curUs[CH_PAN] - US_MIN) / 10.0 + 0.5); }
+int tiltDeg()  { return (int)((curUs[CH_TILT] - US_MIN) / 10.0 + 0.5); }
 
 // ---- protocol ---------------------------------------------------------------
 void err(const char* reason) {

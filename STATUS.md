@@ -105,10 +105,11 @@ open decision with a hybrid of both options:
   Per-motor direction flips live in FWD_HIGH[] in the firmware.
 - **Servos:** PCA9685 on the **Mega's** I²C (SDA 20, SCL 21) — moved off
   the Pi 2026-08-29 evening so one MCU owns all deadlines and bench testing
-  needs no Pi. Roster: ch0 probe = MG996R (mandatory — force calc), ch1
-  pan = **MG90S** (OK only because the thrust collar carries the moment;
-  the printed turret pocket is MG996R-sized — fold the adapter into the
-  deck-fix task), ch2 tilt = MG996R.
+  needs no Pi. Roster AS PLUGGED (builder's override, 2026-08-29 late):
+  ch0 tilt = MG996R, **ch1 probe = MG90S**, ch2 pan = MG996R. The MG90S
+  probe is AGAINST the force calc (~12 N stall vs 8.8 N loose-mix load,
+  22 N garden soil) — works only in very loose potting mix, retract on
+  hum. Warned twice; documented in the firmware header too.
 - **Firmware v3** (`rover_motion.ino`, Mega + Adafruit PWM Servo Driver
   lib): full HANDOFF §4 protocol restored — wheels AND PROBE/PAN/TILT/HOME,
   7-field STATUS, both interlocks back in firmware (PROBE refused while
