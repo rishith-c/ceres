@@ -103,16 +103,18 @@ open decision with a hybrid of both options:
   Battery daisy-chain: pack + → board1 +12V → jumper → board2 +12V; pack −
   → board1 GND → jumper → board2 GND; one wire board1 GND → Uno GND.
   Per-motor direction flips live in FWD_HIGH[] in the firmware.
-- **Servos:** PCA9685 on the Pi's I²C. Roster changed from 3× MG996R:
-  ch0 probe = MG996R (mandatory — force calc), ch1 pan = **SG90** (OK only
-  because the thrust collar carries the moment; NOTE the printed turret
-  base pocket is MG996R-sized — needs re-parameterizing, fold into the
+- **Servos:** PCA9685 on the **Mega's** I²C (SDA 20, SCL 21) — moved off
+  the Pi 2026-08-29 evening so one MCU owns all deadlines and bench testing
+  needs no Pi. Roster: ch0 probe = MG996R (mandatory — force calc), ch1
+  pan = **MG90S** (OK only because the thrust collar carries the moment;
+  the printed turret pocket is MG996R-sized — fold the adapter into the
   deck-fix task), ch2 tilt = MG996R.
-- **Firmware v2** (`rover_motion.ino`): wheels-only, PROBE/PAN/TILT/HOME
-  removed, STATUS is now `OK <drive> <pwm> <uptime>`, MAX_PWM 160 for
-  direct-3S operation. `pi/actuators.py` owns the servos (slew, never-park-
-  loaded via `sample()`), and the **probe-vs-motion interlock now lives on
-  the Pi**: check `ProbeTurret.probe_deployed` before any drive command.
+- **Firmware v3** (`rover_motion.ino`, Mega + Adafruit PWM Servo Driver
+  lib): full HANDOFF §4 protocol restored — wheels AND PROBE/PAN/TILT/HOME,
+  7-field STATUS, both interlocks back in firmware (PROBE refused while
+  moving, drive refused while probe deployed), ~83°/s slew via PCA9685,
+  MAX_PWM 160. `pi/rover.py` matches (probe/pan/tilt/home/sample());
+  `pi/actuators.py` + `servo_test.py` retired (git history has them).
 - Bench sketches: `firmware/motor_test/` (old shield, 4-channel),
   `firmware/motor_test_l298n/` (interactive), `firmware/motor_demo_4x/`
   (auto-looping LME-style), `pi/servo_test.py` (PCA9685). All compile for

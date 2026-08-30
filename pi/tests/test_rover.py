@@ -71,13 +71,44 @@ def test_err_reply_raises_with_reason():
 
 
 def test_status_parses_all_fields():
-    r, _ = make_rover(responses={"STATUS": ["OK FWD 150 12345"]})
+    r, _ = make_rover(responses={"STATUS": ["OK FWD 150 0 90 90 1 12345"]})
     st = r.status()
-    assert (st.drive, st.pwm, st.uptime_ms) == ("FWD", 150, 12345)
+    assert (st.drive, st.pwm, st.probe, st.pan, st.tilt, st.settled, st.uptime_ms) == \
+        ("FWD", 150, 0, 90, 90, True, 12345)
+
+
+def test_servo_commands_send_protocol_lines():
+    r, fake = make_rover()
+    r.probe(60)
+    r.pan(120)
+    r.tilt(45)
+    r.home()
+    assert fake.written == ["PROBE 60", "PAN 120", "TILT 45", "HOME"]
+
+
+def test_interlock_errors_surface():
+    r, _ = make_rover(responses={"PROBE": ["ERR moving"], "FWD": ["ERR probe_deployed"]})
+    with pytest.raises(RoverCommandError) as e1:
+        r.probe(100)
+    assert e1.value.reason == "moving"
+    with pytest.raises(RoverCommandError) as e2:
+        r.forward(500, 120)
+    assert e2.value.reason == "probe_deployed"
+
+
+def test_sample_reads_at_depth_then_retracts():
+    settled = ["OK IDLE 0 100 90 90 1 1", "OK IDLE 0 100 90 90 1 2",
+               "OK IDLE 0 0 90 90 1 3"]
+    it = iter(settled)
+    r, fake = make_rover(responses={"STATUS": [lambda f: next(it)]})
+    out = r.sample(lambda: "wet", dwell_s=0)
+    assert out == "wet"
+    probes = [w for w in fake.written if w.startswith("PROBE")]
+    assert probes == ["PROBE 100", "PROBE 0"]
 
 
 def test_malformed_status_raises():
-    r, _ = make_rover(responses={"STATUS": ["OK FWD nonsense 99"]})
+    r, _ = make_rover(responses={"STATUS": ["OK FWD nonsense 0 90 90 1 99"]})
     with pytest.raises(RoverError):
         r.status()
 
@@ -95,7 +126,8 @@ def test_unexpected_ready_means_mcu_reset():
 
 
 def test_wait_for_stop_polls_until_idle():
-    replies = iter(["OK FWD 150 100", "OK FWD 150 200", "OK IDLE 0 300"])
+    replies = iter(["OK FWD 150 0 90 90 1 100", "OK FWD 150 0 90 90 1 200",
+                    "OK IDLE 0 0 90 90 1 300"])
     r, fake = make_rover(responses={"STATUS": [lambda f: next(replies)]})
     st = r.wait_for_stop(timeout=2.0, poll=0.01)
     assert st.drive == "IDLE"
@@ -105,6 +137,7 @@ def test_wait_for_stop_polls_until_idle():
 def test_client_side_validation():
     r, fake = make_rover()
     for bad in (lambda: r.forward(0, 100), lambda: r.forward(800, 300),
+                lambda: r.probe(101), lambda: r.pan(181),
                 lambda: r.spin(300, 100, "X")):
         with pytest.raises(ValueError):
             bad()
