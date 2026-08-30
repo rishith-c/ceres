@@ -109,8 +109,9 @@ open decision with a hybrid of both options:
   ch0 tilt = MG996R (healthy), **ch1 probe = MG90S** (fenced 900–2400 µs,
   retract = 30°; against the force calc — loose mix only), ch2 pan =
   **DISABLED**: that servo spins continuously on any pulse incl. center
-  (continuous-rotation clone or broken) and gets zero pulses until a real
-  positional servo replaces it (then flip PAN_ENABLED). Probe slew ~50°/s,
+  (continuous-rotation clone or broken). Positional PAN stays disabled, but
+  **PANSPIN <ms> <L|R>** (1250/1750 µs, max 2 s, then pulses cut) gives
+  working timed nudges — verified moving both directions on the bench. Probe slew ~50°/s,
   pan/tilt ~83°/s. Probe rack travel limits NOT yet calibrated — limit
   finder exists (firmware/probe_limit_finder) but the session stalled;
   carriage reported to crash at fence ends, so the real travel is
