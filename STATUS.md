@@ -1,3 +1,13 @@
+# Project status
+
+## MILESTONE 2026-08-29 late: full bench bring-up complete
+Every actuator verified moving under serial command on the Mega:
+wheels (timed + watchdog), probe (gentle, fenced), tilt (positional),
+pan (PANSPIN timed nudges — the servo is a continuous type). Link clean.
+Still open before the hackathon: probe rack limit calibration, drivetrain
+on real ground, deck reprint (axis defect), probe CAD recovery/rebuild,
+a real positional pan servo, 5 A servo buck + inline fuse for demo day.
+
 # Project status — 2026-08-28 session
 
 ## What happened to the files
