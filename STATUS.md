@@ -105,11 +105,16 @@ open decision with a hybrid of both options:
   Per-motor direction flips live in FWD_HIGH[] in the firmware.
 - **Servos:** PCA9685 on the **Mega's** I²C (SDA 20, SCL 21) — moved off
   the Pi 2026-08-29 evening so one MCU owns all deadlines and bench testing
-  needs no Pi. Roster AS PLUGGED (builder's override, 2026-08-29 late):
-  ch0 tilt = MG996R, **ch1 probe = MG90S**, ch2 pan = MG996R. The MG90S
-  probe is AGAINST the force calc (~12 N stall vs 8.8 N loose-mix load,
-  22 N garden soil) — works only in very loose potting mix, retract on
-  hum. Warned twice; documented in the firmware header too.
+  needs no Pi. Roster AS PLUGGED (re-confirmed after two map flip-flops):
+  ch0 tilt = MG996R (healthy), **ch1 probe = MG90S** (fenced 900–2400 µs,
+  retract = 30°; against the force calc — loose mix only), ch2 pan =
+  **DISABLED**: that servo spins continuously on any pulse incl. center
+  (continuous-rotation clone or broken) and gets zero pulses until a real
+  positional servo replaces it (then flip PAN_ENABLED). Probe slew ~50°/s,
+  pan/tilt ~83°/s. Probe rack travel limits NOT yet calibrated — limit
+  finder exists (firmware/probe_limit_finder) but the session stalled;
+  carriage reported to crash at fence ends, so the real travel is
+  narrower than 30–150°.
 - **Firmware v3** (`rover_motion.ino`, Mega + Adafruit PWM Servo Driver
   lib): full HANDOFF §4 protocol restored — wheels AND PROBE/PAN/TILT/HOME,
   7-field STATUS, both interlocks back in firmware (PROBE refused while
