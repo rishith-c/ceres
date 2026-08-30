@@ -1,14 +1,14 @@
 // continuous_sweep.ino — endless gentle sweeps, one axis at a time.
-//   ch2 MG90S : 30 right, 30 left of center — HARD-CLAMPED to 30..150 deg,
+//   ch1 MG90S : 30 right, 30 left of center — HARD-CLAMPED to 30..150 deg,
 //               it can NEVER be commanded to 0 (or past 150), even by mistake.
-//   ch1 MG996R: 45 right, 45 left
-//   ch0 MG996R: 45 up, 45 down
+//   ch0 MG996R pan : 45 right, 45 left
+//   ch2 MG996R tilt: 45 up, 45 down
 
 #include <Wire.h>
 #include <Adafruit_PWMServoDriver.h>
 
 Adafruit_PWMServoDriver pca;
-const uint8_t CH_TILT = 0, CH_996 = 1, CH_MG90 = 2;
+const uint8_t CH_996 = 0, CH_MG90 = 1, CH_TILT = 2;
 
 const float MG90_MIN = 30.0, MG90_MAX = 150.0;   // the safety fence
 
@@ -39,7 +39,7 @@ void setup() {
   pca.setPWMFreq(50);
   for (uint8_t ch = 0; ch < 3; ch++) writeDeg(ch, pos[ch]);
   Serial.begin(115200);
-  Serial.println(F("SWEEP: ch2 mg90 +/-30 (fenced 30-150), ch1 +/-45, ch0 tilt +/-45"));
+  Serial.println(F("SWEEP: ch1 mg90 +/-30 (fenced 30-150), ch0 pan +/-45, ch2 tilt +/-45"));
   delay(1500);
 }
 
@@ -48,8 +48,8 @@ void loop() {
   Serial.println(F("mg90 left 30"));   moveTo(CH_MG90, 60);  delay(400);
   moveTo(CH_MG90, 90);                 delay(600);
 
-  Serial.println(F("ch1 right 45"));   moveTo(CH_996, 135);  delay(400);
-  Serial.println(F("ch1 left 45"));    moveTo(CH_996, 45);   delay(400);
+  Serial.println(F("pan right 45"));   moveTo(CH_996, 135);  delay(400);
+  Serial.println(F("pan left 45"));    moveTo(CH_996, 45);   delay(400);
   moveTo(CH_996, 90);                  delay(600);
 
   Serial.println(F("tilt up 45"));     moveTo(CH_TILT, 135); delay(400);

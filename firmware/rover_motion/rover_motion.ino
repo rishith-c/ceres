@@ -5,13 +5,16 @@
 // Mega's I2C (SDA 20, SCL 21) — the PCA9685 makes its own pulses, so the old
 // Servo-library/Timer1 conflict does not exist here.
 //
-// Servo roster (as physically plugged, 2026-08-29):
-//   ch0 tilt  = MG996R
+// Servo roster (as physically plugged, final 2026-08-29):
+//   ch0 pan   = MG996R
 //   ch1 probe = MG90S  — BUILDER'S CHOICE against the force calc: ~12 N at
 //               stall vs 8.8 N loose-mix load (22 N in garden soil). Works
 //               only in very loose potting mix; if it hums without moving,
 //               send PROBE 0 immediately. MG996R remains the correct part.
-//   ch2 pan   = MG996R
+//               Fenced to 900-2400 us (30-150 deg): "retracted" = 30 deg, so
+//               it never reaches its end-stop. 120 deg sweep = ~25.7 mm
+//               insertion (HANDOFF graceful-degradation case), not 35 mm.
+//   ch2 tilt  = MG996R
 //
 // Serial protocol (ASCII, newline-terminated), 115200 baud:
 //   PING                  -> OK PONG
@@ -49,11 +52,12 @@ const unsigned long MAX_DRIVE_MS = 10000;
 
 // ---- servos: PCA9685 --------------------------------------------------------
 Adafruit_PWMServoDriver pca;
-const uint8_t CH_TILT = 0, CH_PROBE = 1, CH_PAN = 2;
-const int US_MIN = 600, US_MAX = 2400;   // full range; the probe needs all of it
+const uint8_t CH_PAN = 0, CH_PROBE = 1, CH_TILT = 2;
+const int US_MIN = 600, US_MAX = 2400;       // pan/tilt range
+const int US_PROBE_MIN = 900;                // MG90S fence: probe never below 30 deg
 const float SLEW_US_PER_S = 1000.0;      // ~83 deg/s
 const uint8_t SERVO_TICK_MS = 20;
-const int HOME_US[3] = { 1500, US_MIN, 1500 };  // ch0 tilt 90, ch1 probe retracted, ch2 pan 90
+const int HOME_US[3] = { 1500, US_PROBE_MIN, 1500 };  // pan 90, probe retracted(30deg), tilt 90
 
 float curUs[3], targetUs[3];
 
@@ -95,14 +99,12 @@ void startDrive(DriveState d, unsigned long ms, uint8_t pwm) {
 }
 
 // ---- servos -----------------------------------------------------------------
-// The MG90S (physically on ch2) binds at its end-stops: hard-fence it to
-// 30-150 deg (900-2100 us) at the pulse-write level. No command gets past this.
-const float MG90_US_MIN = 900.0, MG90_US_MAX = 2100.0;
-
+// The MG90S (probe, ch1) binds at its end-stops: hard-fence it at the
+// pulse-write level. No command gets past this.
 void writeServoUs(uint8_t ch, float us) {
-  if (ch == CH_PAN) {
-    if (us < MG90_US_MIN) us = MG90_US_MIN;
-    if (us > MG90_US_MAX) us = MG90_US_MAX;
+  if (ch == CH_PROBE) {
+    if (us < US_PROBE_MIN) us = US_PROBE_MIN;
+    if (us > US_MAX) us = US_MAX;
   }
   pca.setPWM(ch, 0, (int)(us * 4096.0 / 20000.0 + 0.5));  // 50 Hz frame
 }
@@ -114,7 +116,7 @@ bool servosSettled() {
 }
 
 bool probeRetracted() {
-  return targetUs[CH_PROBE] <= US_MIN + 6 && curUs[CH_PROBE] <= US_MIN + 24;
+  return targetUs[CH_PROBE] <= US_PROBE_MIN + 6 && curUs[CH_PROBE] <= US_PROBE_MIN + 24;
 }
 
 void servoTick() {
@@ -130,7 +132,7 @@ void servoTick() {
   }
 }
 
-int probePct() { return (int)((curUs[CH_PROBE] - US_MIN) * 100.0 / (US_MAX - US_MIN) + 0.5); }
+int probePct() { return (int)((curUs[CH_PROBE] - US_PROBE_MIN) * 100.0 / (US_MAX - US_PROBE_MIN) + 0.5); }
 int panDeg()   { return (int)((curUs[CH_PAN] - US_MIN) / 10.0 + 0.5); }
 int tiltDeg()  { return (int)((curUs[CH_TILT] - US_MIN) / 10.0 + 0.5); }
 
@@ -196,7 +198,7 @@ void handleLine(char* line) {
     long pct;
     if (!parseLong(strtok(NULL, " "), &pct, 0, 100)) { err("bad_args"); return; }
     if (drive != IDLE) { err("moving"); return; }
-    targetUs[CH_PROBE] = US_MIN + pct * (US_MAX - US_MIN) / 100.0;
+    targetUs[CH_PROBE] = US_PROBE_MIN + pct * (US_MAX - US_PROBE_MIN) / 100.0;
     Serial.println(F("OK PROBE"));
 
   } else if (strcmp(cmd, "PAN") == 0 || strcmp(cmd, "TILT") == 0) {
