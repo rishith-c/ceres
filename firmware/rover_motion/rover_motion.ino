@@ -57,7 +57,7 @@ const unsigned long MAX_DRIVE_MS = 10000;
 
 // ---- servos: PCA9685 --------------------------------------------------------
 Adafruit_PWMServoDriver pca;
-const uint8_t CH_TILT = 0, CH_PROBE = 1, CH_PAN = 2;
+const uint8_t CH_TILT = 3, CH_PROBE = 1, CH_PAN = 2;  // tilt moved to ch3 (builder rewire); ch0 now empty, ch2 = retired fried servo slot
 const int US_MIN = 600, US_MAX = 2400;
 const int US_PROBE_MIN = 600;                // ABSOLUTE floor — servo pulse limit. Any more depth = re-mesh the pinion lower. LISTEN for buzz at full DOWN.
 const int US_PROBE_MAX = 2150;               // UP limit lowered 2026-08-30 ("goes too up") — park sits ~25 deg lower now
@@ -69,11 +69,11 @@ const int US_PROBE_MAX = 2150;               // UP limit lowered 2026-08-30 ("go
 const int US_TILT_MIN = 1340, US_TILT_MAX = 1780;   // 74..118 deg
 // Per-channel slew: pan/tilt ~83 deg/s; the probe ~50 deg/s — gentle on the
 // rack and pinion but not sluggish (builder-tuned 2026-08-29).
-const float SLEW_US_PER_S[3] = { 1000.0, 900.0, 1000.0 };  // ch0 tilt, ch1 probe (~75 deg/s, builder-tuned), ch2 pan
+const float SLEW_US_PER_S[4] = { 1000.0, 900.0, 1000.0, 1000.0 };  // per channel; ch1 probe ~75 deg/s
 const uint8_t SERVO_TICK_MS = 20;
-const int HOME_US[3] = { 1500, US_PROBE_MAX, 1500 };  // tilt 90, probe retracted(up), pan(disabled)
+const int HOME_US[4] = { 1500, US_PROBE_MAX, 1500, 1500 };  // ch0 unused, probe, pan(retired), tilt 90
 
-float curUs[3], targetUs[3];
+float curUs[4], targetUs[4];
 bool tiltEnergized = false;   // tilt stays pulseless until first commanded —
                               // no self-movement at plug-in (loose-horn drift guard)
 
@@ -151,8 +151,10 @@ void writeServoUs(uint8_t ch, float us) {
 }
 
 bool servosSettled() {
-  for (uint8_t i = 0; i < 3; i++)
+  for (uint8_t i = 0; i < 4; i++) {
+    if (i == 0 || i == CH_PAN) continue;   // unused / retired channels
     if (fabs(curUs[i] - targetUs[i]) > 6.0) return false;
+  }
   return true;
 }
 
@@ -165,8 +167,8 @@ void servoTick() {
   if (now - lastServoTick < SERVO_TICK_MS) return;
   float dt = (now - lastServoTick) / 1000.0;
   lastServoTick = now;
-  for (uint8_t i = 0; i < 3; i++) {
-    if (i == CH_PAN && !PAN_ENABLED) continue;  // PANSPIN owns this channel
+  for (uint8_t i = 0; i < 4; i++) {
+    if (i == 0 || (i == CH_PAN && !PAN_ENABLED)) continue;  // empty / retired
     if (i == CH_TILT && !tiltEnergized) continue;
     float step = SLEW_US_PER_S[i] * dt;
     float d = targetUs[i] - curUs[i];
@@ -299,12 +301,10 @@ void setup() {
 
   pca.begin();
   pca.setPWMFreq(50);
-  for (uint8_t i = 0; i < 3; i++) {
-    // Probe starts from the old park position and SLEWS to the new one
-    // instead of snapping across the rack at boot.
+  for (uint8_t i = 0; i < 4; i++) {
     curUs[i] = (i == CH_PROBE) ? 1500 : HOME_US[i];  // probe eases from mid to park
     targetUs[i] = HOME_US[i];
-    if (i == CH_TILT) { pca.setPWM(CH_TILT, 0, 0); continue; }  // limp until asked
+    if (i == 0 || i == CH_PAN || i == CH_TILT) { pca.setPWM(i, 0, 0); continue; }  // silent
     writeServoUs(i, curUs[i]);
   }
 
