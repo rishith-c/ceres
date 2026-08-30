@@ -1,5 +1,13 @@
 # Project status
 
+## 2026-08-30 evening — Pi COMMISSIONED
+Pi 4 ("varun", user varun, 10.59.112.136 on campus net + RPi Connect as
+backup) boots from 128 GB USB (102 GB free), reachable by key-auth SSH
+from the Mac. Code deployed to ~/rover with venv (.venv, system-site,
+cv2 4.10 via apt + anthropic/pyserial/pytest via pip). **All 45 tests
+pass ON THE PI.** Remaining to first real leaf judgment: export
+ANTHROPIC_API_KEY on the Pi, plug Mega + C920 into Pi USB.
+
 ## 2026-08-30 — vision + scan pipeline ready for the Pi
 `pi/` now carries the whole per-plant inspection chain, hardware-free
 tested (45 tests): `camera.py` (C920 capture, warmup burst),
