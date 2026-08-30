@@ -59,7 +59,10 @@ const unsigned long MAX_DRIVE_MS = 10000;
 Adafruit_PWMServoDriver pca;
 const uint8_t CH_TILT = 0, CH_PROBE = 1, CH_PAN = 2;
 const int US_MIN = 600, US_MAX = 2400;
-const int US_PROBE_MIN = 900;                // MG90S fence: probe never below 30 deg
+const int US_PROBE_MIN = 900;                // MG90S fence: pulses stay 900-2400
+// Bench-measured 2026-08-30: the rack runs MIRRORED to the design assumption,
+// so the pct->pulse map is inverted: PROBE 0 (retracted/up) = 2400 us,
+// PROBE 100 (inserted/down) = 900 us. The fence bounds are unchanged.
 // Tilt mechanism hammers its stop below ~74 deg (measured by successive
 // approximation 2026-08-30); 118 deg is the highest angle proven clean.
 const int US_TILT_MIN = 1340, US_TILT_MAX = 1780;   // 74..118 deg
@@ -67,7 +70,7 @@ const int US_TILT_MIN = 1340, US_TILT_MAX = 1780;   // 74..118 deg
 // rack and pinion but not sluggish (builder-tuned 2026-08-29).
 const float SLEW_US_PER_S[3] = { 1000.0, 600.0, 1000.0 };  // ch0 pan, ch1 probe, ch2 tilt
 const uint8_t SERVO_TICK_MS = 20;
-const int HOME_US[3] = { 1500, US_PROBE_MIN, 1500 };  // tilt 90, probe retracted(30deg), pan(disabled)
+const int HOME_US[3] = { 1500, US_MAX, 1500 };  // tilt 90, probe retracted(up), pan(disabled)
 
 float curUs[3], targetUs[3];
 
@@ -145,7 +148,7 @@ bool servosSettled() {
 }
 
 bool probeRetracted() {
-  return targetUs[CH_PROBE] <= US_PROBE_MIN + 6 && curUs[CH_PROBE] <= US_PROBE_MIN + 24;
+  return targetUs[CH_PROBE] >= US_MAX - 6 && curUs[CH_PROBE] >= US_MAX - 24;
 }
 
 void servoTick() {
@@ -163,7 +166,7 @@ void servoTick() {
   }
 }
 
-int probePct() { return (int)((curUs[CH_PROBE] - US_PROBE_MIN) * 100.0 / (US_MAX - US_PROBE_MIN) + 0.5); }
+int probePct() { return (int)((US_MAX - curUs[CH_PROBE]) * 100.0 / (US_MAX - US_PROBE_MIN) + 0.5); }
 int panDeg()   { return (int)((curUs[CH_PAN] - US_MIN) / 10.0 + 0.5); }
 int tiltDeg()  { return (int)((curUs[CH_TILT] - US_MIN) / 10.0 + 0.5); }
 
@@ -229,7 +232,7 @@ void handleLine(char* line) {
     long pct;
     if (!parseLong(strtok(NULL, " "), &pct, 0, 100)) { err("bad_args"); return; }
     if (drive != IDLE) { err("moving"); return; }
-    targetUs[CH_PROBE] = US_PROBE_MIN + pct * (US_MAX - US_PROBE_MIN) / 100.0;
+    targetUs[CH_PROBE] = US_MAX - pct * (US_MAX - US_PROBE_MIN) / 100.0;
     Serial.println(F("OK PROBE"));
 
   } else if (strcmp(cmd, "PAN") == 0 || strcmp(cmd, "TILT") == 0) {
@@ -281,7 +284,10 @@ void setup() {
   pca.begin();
   pca.setPWMFreq(50);
   for (uint8_t i = 0; i < 3; i++) {
-    curUs[i] = targetUs[i] = HOME_US[i];
+    // Probe starts from the old park position and SLEWS to the new one
+    // instead of snapping across the rack at boot.
+    curUs[i] = (i == CH_PROBE) ? US_PROBE_MIN : HOME_US[i];
+    targetUs[i] = HOME_US[i];
     writeServoUs(i, curUs[i]);
   }
 
