@@ -95,7 +95,15 @@ void startDrive(DriveState d, unsigned long ms, uint8_t pwm) {
 }
 
 // ---- servos -----------------------------------------------------------------
+// The MG90S (physically on ch2) binds at its end-stops: hard-fence it to
+// 30-150 deg (900-2100 us) at the pulse-write level. No command gets past this.
+const float MG90_US_MIN = 900.0, MG90_US_MAX = 2100.0;
+
 void writeServoUs(uint8_t ch, float us) {
+  if (ch == CH_PAN) {
+    if (us < MG90_US_MIN) us = MG90_US_MIN;
+    if (us > MG90_US_MAX) us = MG90_US_MAX;
+  }
   pca.setPWM(ch, 0, (int)(us * 4096.0 / 20000.0 + 0.5));  // 50 Hz frame
 }
 
