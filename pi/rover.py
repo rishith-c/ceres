@@ -75,7 +75,14 @@ class Rover:
             line = self._read_line()
             if line is not None and line.startswith("READY"):
                 return
-        raise RoverTimeout("no READY banner — is the firmware flashed?")
+        # No banner — the MCU may simply not have reset on port-open.
+        # A clean PONG proves the firmware is alive and listening.
+        try:
+            self._command("PING")
+            return
+        except RoverError:
+            raise RoverTimeout("no READY banner and no PING reply — "
+                               "is the firmware flashed and the cable good?")
 
     def close(self) -> None:
         if self._ser is not None:

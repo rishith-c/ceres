@@ -150,3 +150,10 @@ def test_context_manager_stops_and_closes():
         r.ping()
     assert fake.written[-1] == "STOP"
     assert fake.closed
+
+
+def test_connect_falls_back_to_ping_when_no_banner():
+    fake = FakeSerial(boot_lines=(), responses={"PING": ["OK PONG"]})
+    r = Rover(transport=fake, ready_timeout=0.2, cmd_timeout=0.5)
+    r.connect()   # no READY ever arrives, but PING answers
+    assert "PING" in fake.written
