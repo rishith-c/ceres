@@ -1,7 +1,8 @@
 // turret_duet.ino — standalone kinematic pan/tilt show. NO USB needed once
 // flashed: unplug and let it run. Wheels untouched.
 //
-// tilt (ch0, MG996R): smooth sine 62-118 deg, 5 s period
+// tilt (ch0, MG996R): asymmetric sine 74-118 deg (the mechanism has a
+//   mechanical floor near ~62-70 deg discovered by hammering; stay above it)
 // pan  (ch2, continuous): 300 ms alternating nudges, fired ONLY while the
 //   tilt passes near center — big servos take turns, so the 6 V rail never
 //   sees both peaks at once (the intermittent-hammer fix).
@@ -35,10 +36,10 @@ void loop() {
   unsigned long now = millis();
   float t = (now - t0) / 1000.0;
 
-  float tilt = 90.0 + 28.0 * sin(2 * PI * t / 5.0);   // 62..118
+  float tilt = 96.0 + 22.0 * sin(2 * PI * t / 5.0);   // 74..118, floor-safe
   writeUs(CH_TILT, 600.0 + tilt * 10.0);
 
-  if (!panOn && fabs(tilt - 90.0) < 8.0 && now - lastNudge > 2000) {
+  if (!panOn && fabs(tilt - 96.0) < 8.0 && now - lastNudge > 2000) {
     writeUs(CH_PAN, nudgeRight ? PAN_R : PAN_L);
     nudgeRight = !nudgeRight;
     panOn = true;
