@@ -146,11 +146,11 @@ button:active{background:var(--daisyw);box-shadow:inset 0 0 0 1.5px var(--daisy)
     <button data-hold="spinl">⟲</button><button class="stop" data-tap="stop">STOP</button><button data-hold="spinr">⟳</button>
     <span></span><button data-hold="rev">▼</button><span></span>
    </div>
-   <h2>Camera — aim what the rover sees</h2>
-   <div class="row"><button data-tap="tiltup" class="small">👀 look UP</button>
-    <button data-tap="tiltdown" class="small">👀 look DOWN</button></div>
-   <div class="row"><button data-tap="panl" class="small">↰ turn head LEFT</button>
-    <button data-tap="panr" class="small">↱ turn head RIGHT</button></div>
+   <h2>Camera — hold to aim</h2>
+   <div class="row"><button data-rep="tiltup" data-ms="200" class="small">👀 look UP</button>
+    <button data-rep="tiltdown" data-ms="200" class="small">👀 look DOWN</button></div>
+   <div class="row"><button data-rep="panl" data-ms="450" class="small">↰ head LEFT</button>
+    <button data-rep="panr" data-ms="450" class="small">↱ head RIGHT</button></div>
    <h2>Soil probe</h2>
    <div class="row"><button data-tap="probe0" class="small">⬆ probe UP (safe)</button>
     <button data-tap="probe50" class="small">probe half</button>
@@ -174,12 +174,22 @@ document.querySelectorAll("[data-hold]").forEach(b=>{
 });
 document.querySelectorAll("[data-tap]").forEach(b=>
   b.addEventListener("click", ()=>cmd(b.dataset.tap)));
+let repTimer = null;
+document.querySelectorAll("[data-rep]").forEach(b=>{
+  const start = e=>{ e.preventDefault(); cmd(b.dataset.rep);
+    repTimer = setInterval(()=>cmd(b.dataset.rep), +b.dataset.ms); };
+  const end = ()=>{ if(repTimer){ clearInterval(repTimer); repTimer=null; } };
+  b.addEventListener("pointerdown", start);
+  b.addEventListener("pointerup", end); b.addEventListener("pointerleave", end);
+  b.addEventListener("pointercancel", end);
+});
 const keys = {ArrowUp:"fwd",w:"fwd",ArrowDown:"rev",s:"rev",ArrowLeft:"spinl",a:"spinl",ArrowRight:"spinr",d:"spinr"};
 let keyTimer=null, curKey=null;
 addEventListener("keydown", e=>{ const c=keys[e.key]; if(!c||curKey===e.key) return;
   curKey=e.key; cmd(c); keyTimer=setInterval(()=>cmd(c),300); });
 addEventListener("keyup", e=>{ if(keys[e.key]&&curKey===e.key){ clearInterval(keyTimer); curKey=null; cmd("stop"); }});
 function killTimers(){ if(holdTimer){clearInterval(holdTimer);holdTimer=null}
+  if(repTimer){clearInterval(repTimer);repTimer=null}
   if(keyTimer){clearInterval(keyTimer);keyTimer=null;curKey=null} }
 document.getElementById("estop").addEventListener("click", async ()=>{
   killTimers(); await cmd("stop"); setTimeout(()=>cmd("stop"), 300);
@@ -217,10 +227,10 @@ def handle_cmd(c):
         elif c == "stop":   link.do(lambda r: r.stop())
         elif c == "home":   link.do(lambda r: r.home()); TILT["cur"] = 90
         elif c == "tiltup":
-            TILT["cur"] = min(118, TILT["cur"] + 8)
+            TILT["cur"] = min(118, TILT["cur"] + 4)
             link.do(lambda r: r.tilt(TILT["cur"]))
         elif c == "tiltdown":
-            TILT["cur"] = max(74, TILT["cur"] - 8)
+            TILT["cur"] = max(74, TILT["cur"] - 4)
             link.do(lambda r: r.tilt(TILT["cur"]))
         elif c == "panl":   link.do(lambda r: r.pan_nudge(300, "L"))
         elif c == "panr":   link.do(lambda r: r.pan_nudge(300, "R"))
