@@ -59,7 +59,7 @@ const unsigned long MAX_DRIVE_MS = 10000;
 Adafruit_PWMServoDriver pca;
 const uint8_t CH_TILT = 0, CH_PROBE = 1, CH_PAN = 2;
 const int US_MIN = 600, US_MAX = 2400;
-const int US_PROBE_MIN = 900;                // MG90S fence: pulses stay 900-2400
+const int US_PROBE_MIN = 750;                // fence floor lowered 2026-08-30 for deeper travel — if the carriage buzzes at full DOWN, raise this back
 // Bench-measured 2026-08-30: the rack runs MIRRORED to the design assumption,
 // so the pct->pulse map is inverted: PROBE 0 (retracted/up) = 2400 us,
 // PROBE 100 (inserted/down) = 900 us. The fence bounds are unchanged.
@@ -75,7 +75,7 @@ const int HOME_US[3] = { 1500, US_MAX, 1500 };  // tilt 90, probe retracted(up),
 float curUs[3], targetUs[3];
 
 // ---- state ------------------------------------------------------------------
-enum DriveState { IDLE, FWD, REV, SPINL, SPINR };
+enum DriveState { IDLE, FWD, REV, SPINL, SPINR, ARCL, ARCR, RARCL, RARCR };
 DriveState drive = IDLE;
 uint8_t drivePwm = 0;
 unsigned long driveStopAt = 0, lastRxMs = 0, lastServoTick = 0;
@@ -100,12 +100,18 @@ void setMotor(uint8_t m, bool fwd, uint8_t pwm) {
 
 void startDrive(DriveState d, unsigned long ms, uint8_t pwm) {
   if (pwm > MAX_PWM) pwm = MAX_PWM;
-  bool leftFwd = (d == FWD || d == SPINR);
-  bool rightFwd = (d == FWD || d == SPINL);
-  setMotor(0, leftFwd, pwm);
-  setMotor(1, leftFwd, pwm);
-  setMotor(2, rightFwd, pwm);
-  setMotor(3, rightFwd, pwm);
+  bool fwd = (d == FWD || d == ARCL || d == ARCR);
+  bool rev = (d == REV || d == RARCL || d == RARCR);
+  bool leftFwd  = fwd || d == SPINR;
+  bool rightFwd = fwd || d == SPINL;
+  // Arcs: the inner side runs at 40% — a smooth car-like veer.
+  uint8_t leftPwm = pwm, rightPwm = pwm;
+  if (d == ARCL || d == RARCL) leftPwm  = (uint8_t)(pwm * 0.4);
+  if (d == ARCR || d == RARCR) rightPwm = (uint8_t)(pwm * 0.4);
+  setMotor(0, leftFwd, leftPwm);
+  setMotor(1, leftFwd, leftPwm);
+  setMotor(2, rightFwd, rightPwm);
+  setMotor(3, rightFwd, rightPwm);
   drive = d;
   drivePwm = pwm;
   driveStopAt = millis() + ms;
@@ -193,13 +199,13 @@ void handleDriveCmd(DriveState d, const char* okName) {
     err("bad_args");
     return;
   }
-  if (d == SPINL) {
+  if (d == SPINL || d == ARCL || d == RARCL) {
     char* side = strtok(NULL, " ");
     if (side == NULL || side[1] != '\0' || (side[0] != 'L' && side[0] != 'R')) {
       err("bad_args");
       return;
     }
-    if (side[0] == 'R') d = SPINR;
+    if (side[0] == 'R') d = (d == SPINL) ? SPINR : (d == ARCL) ? ARCR : RARCR;
   }
   if (!probeRetracted()) {  // rolling with the probe down snaps the probe
     err("probe_deployed");
@@ -223,6 +229,10 @@ void handleLine(char* line) {
     handleDriveCmd(REV, "REV");
   } else if (strcmp(cmd, "SPIN") == 0) {
     handleDriveCmd(SPINL, "SPIN");
+  } else if (strcmp(cmd, "ARC") == 0) {
+    handleDriveCmd(ARCL, "ARC");
+  } else if (strcmp(cmd, "RARC") == 0) {
+    handleDriveCmd(RARCL, "RARC");
 
   } else if (strcmp(cmd, "STOP") == 0) {
     stopMotors();
@@ -260,7 +270,7 @@ void handleLine(char* line) {
     Serial.println(F("OK HOME"));
 
   } else if (strcmp(cmd, "STATUS") == 0) {
-    static const char* names[] = { "IDLE", "FWD", "REV", "SPINL", "SPINR" };
+    static const char* names[] = { "IDLE", "FWD", "REV", "SPINL", "SPINR", "ARCL", "ARCR", "RARCL", "RARCR" };
     Serial.print(F("OK "));
     Serial.print(names[drive]); Serial.print(' ');
     Serial.print(drivePwm);     Serial.print(' ');

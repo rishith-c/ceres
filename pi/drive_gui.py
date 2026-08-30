@@ -142,9 +142,9 @@ button:active{background:var(--daisyw);box-shadow:inset 0 0 0 1.5px var(--daisy)
   <div class="panel">
    <h2>Drive — hold to move</h2>
    <div class="pad">
-    <span></span><button data-hold="fwd">▲</button><span></span>
+    <button data-hold="arcl">↖</button><button data-hold="fwd">▲</button><button data-hold="arcr">↗</button>
     <button data-hold="spinl">⟲</button><button class="stop" data-tap="stop">STOP</button><button data-hold="spinr">⟳</button>
-    <span></span><button data-hold="rev">▼</button><span></span>
+    <button data-hold="rarcl">↙</button><button data-hold="rev">▼</button><button data-hold="rarcr">↘</button>
    </div>
    <h2>Camera — hold to aim</h2>
    <div class="row"><button data-rep="tiltup" data-ms="320" class="small">👀 look UP</button>
@@ -221,6 +221,10 @@ def handle_cmd(c):
             return {"err": str(e)}
     try:
         if c == "fwd":      link.do(lambda r: r.forward(BURST_MS, DRIVE_PWM))
+        elif c == "arcl":   link.do(lambda r: r.arc(BURST_MS, DRIVE_PWM, "L"))
+        elif c == "arcr":   link.do(lambda r: r.arc(BURST_MS, DRIVE_PWM, "R"))
+        elif c == "rarcl":  link.do(lambda r: r.arc(BURST_MS, DRIVE_PWM, "L", reverse=True))
+        elif c == "rarcr":  link.do(lambda r: r.arc(BURST_MS, DRIVE_PWM, "R", reverse=True))
         elif c == "rev":    link.do(lambda r: r.reverse(BURST_MS, DRIVE_PWM))
         elif c == "spinl":  link.do(lambda r: r.spin(BURST_MS, DRIVE_PWM, "L"))
         elif c == "spinr":  link.do(lambda r: r.spin(BURST_MS, DRIVE_PWM, "R"))

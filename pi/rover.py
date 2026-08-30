@@ -145,6 +145,13 @@ class Rover:
             raise ValueError("side must be 'L' or 'R'")
         self._command(f"SPIN {self._ms(ms)} {self._pwm(pwm)} {side}")
 
+    def arc(self, ms: int, pwm: int, side: str, reverse: bool = False) -> None:
+        """Car-like veer: inner side at 40% power. side is the direction of turn."""
+        if side not in ("L", "R"):
+            raise ValueError("side must be 'L' or 'R'")
+        cmd = "RARC" if reverse else "ARC"
+        self._command(f"{cmd} {self._ms(ms)} {self._pwm(pwm)} {side}")
+
     def stop(self) -> None:
         self._command("STOP")
 
