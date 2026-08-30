@@ -56,8 +56,11 @@ const unsigned long MAX_DRIVE_MS = 10000;
 // ---- servos: PCA9685 --------------------------------------------------------
 Adafruit_PWMServoDriver pca;
 const uint8_t CH_TILT = 0, CH_PROBE = 1, CH_PAN = 2;
-const int US_MIN = 600, US_MAX = 2400;       // pan/tilt range
+const int US_MIN = 600, US_MAX = 2400;
 const int US_PROBE_MIN = 900;                // MG90S fence: probe never below 30 deg
+// Tilt mechanism hammers its stop below ~74 deg (measured by successive
+// approximation 2026-08-30); 118 deg is the highest angle proven clean.
+const int US_TILT_MIN = 1340, US_TILT_MAX = 1780;   // 74..118 deg
 // Per-channel slew: pan/tilt ~83 deg/s; the probe ~50 deg/s — gentle on the
 // rack and pinion but not sluggish (builder-tuned 2026-08-29).
 const float SLEW_US_PER_S[3] = { 1000.0, 600.0, 1000.0 };  // ch0 pan, ch1 probe, ch2 tilt
@@ -125,6 +128,10 @@ void writeServoUs(uint8_t ch, float us) {
   if (ch == CH_PROBE) {
     if (us < US_PROBE_MIN) us = US_PROBE_MIN;
     if (us > US_MAX) us = US_MAX;
+  }
+  if (ch == CH_TILT) {
+    if (us < US_TILT_MIN) us = US_TILT_MIN;
+    if (us > US_TILT_MAX) us = US_TILT_MAX;
   }
   pca.setPWM(ch, 0, (int)(us * 4096.0 / 20000.0 + 0.5));  // 50 Hz frame
 }

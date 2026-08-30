@@ -4,7 +4,12 @@
 Every actuator verified moving under serial command on the Mega:
 wheels (timed + watchdog), probe (gentle, fenced), tilt (positional),
 pan (PANSPIN timed nudges — the servo is a continuous type). Link clean.
-Still open before the hackathon: probe rack limit calibration, drivetrain
+Tilt mechanism calibrated 2026-08-30: hammers its stop below ~74 deg;
+firmware now fences TILT to 74-118 (like the probe's 30-150 fence).
+firmware/turret_duet is a standalone USB-free pan/tilt show (74-118 wave,
+staggered pan nudges — simultaneous big-servo peaks caused intermittent
+hammering; USB streaming reliably kills the link until the ground/cable
+fix happens). Still open before the hackathon: probe rack limit calibration, drivetrain
 on real ground, deck reprint (axis defect), probe CAD recovery/rebuild,
 a real positional pan servo, 5 A servo buck + inline fuse for demo day.
 
