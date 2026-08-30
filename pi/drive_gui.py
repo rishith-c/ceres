@@ -147,8 +147,8 @@ button:active{background:var(--daisyw);box-shadow:inset 0 0 0 1.5px var(--daisy)
     <span></span><button data-hold="rev">▼</button><span></span>
    </div>
    <h2>Camera — hold to aim</h2>
-   <div class="row"><button data-rep="tiltup" data-ms="200" class="small">👀 look UP</button>
-    <button data-rep="tiltdown" data-ms="200" class="small">👀 look DOWN</button></div>
+   <div class="row"><button data-rep="tiltup" data-ms="320" class="small">👀 look UP</button>
+    <button data-rep="tiltdown" data-ms="320" class="small">👀 look DOWN</button></div>
    <div class="row"><button data-rep="panl" data-ms="450" class="small">↰ head LEFT</button>
     <button data-rep="panr" data-ms="450" class="small">↱ head RIGHT</button></div>
    <h2>Soil probe</h2>
@@ -227,10 +227,10 @@ def handle_cmd(c):
         elif c == "stop":   link.do(lambda r: r.stop())
         elif c == "home":   link.do(lambda r: r.home()); TILT["cur"] = 90
         elif c == "tiltup":
-            TILT["cur"] = min(118, TILT["cur"] + 4)
+            TILT["cur"] = min(118, TILT["cur"] + 2)
             link.do(lambda r: r.tilt(TILT["cur"]))
         elif c == "tiltdown":
-            TILT["cur"] = max(74, TILT["cur"] - 4)
+            TILT["cur"] = max(74, TILT["cur"] - 2)
             link.do(lambda r: r.tilt(TILT["cur"]))
         elif c == "panl":   link.do(lambda r: r.pan_nudge(300, "L"))
         elif c == "panr":   link.do(lambda r: r.pan_nudge(300, "R"))
