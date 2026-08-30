@@ -1,4 +1,4 @@
-# Project status
+# Project status — the rover is named CERES
 
 ## 2026-08-30 late — PI↔MEGA INTEGRATION LIVE
 Mega on the Pi's USB (/dev/ttyACM0). Rover Remote GUI (pi/drive_gui.py)
