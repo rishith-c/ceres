@@ -111,7 +111,7 @@ const bool PAN_ENABLED = false;
 
 // Timed-nudge pan for the continuous servo: pulse off-center for a bounded
 // time, then cut pulses entirely so it stops. No absolute angle exists.
-const int PANSPIN_US_L = 1380, PANSPIN_US_R = 1620;  // gentle speed each way
+const int PANSPIN_US_L = 1250, PANSPIN_US_R = 1750;  // strong enough to clear the dead zone
 unsigned long panSpinUntil = 0;
 bool panSpinning = false;
 
