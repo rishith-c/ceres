@@ -28,8 +28,8 @@ PLANT_CLASS = 58            # COCO "potted plant"
 CONF = 0.35
 SIZE = 640
 
-TILT_DEADBAND, PAN_DEADBAND = 0.10, 0.22
-TILT_PERIOD, PAN_COOLDOWN = 0.35, 1.4
+TILT_DEADBAND, PAN_DEADBAND = 0.10, 0.18
+TILT_PERIOD, PAN_COOLDOWN = 0.35, 2.2  # spins shake the camera — wait for it to settle
 
 
 def cmd(c):

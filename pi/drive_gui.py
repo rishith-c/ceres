@@ -149,8 +149,8 @@ button:active{background:var(--daisyw);box-shadow:inset 0 0 0 1.5px var(--daisy)
    <h2>Camera — hold to aim</h2>
    <div class="row"><button data-rep="tiltup" data-ms="320" class="small">👀 look UP</button>
     <button data-rep="tiltdown" data-ms="320" class="small">👀 look DOWN</button></div>
-   <div class="row"><button data-rep="panl" data-ms="450" class="small">↰ head LEFT</button>
-    <button data-rep="panr" data-ms="450" class="small">↱ head RIGHT</button></div>
+   <div class="row"><button data-rep="panl" data-ms="700" class="small">↰ turn body LEFT</button>
+    <button data-rep="panr" data-ms="700" class="small">↱ turn body RIGHT</button></div>
    <h2>Soil probe</h2>
    <div class="row"><button data-tap="probe0" class="small">⬆ probe UP (safe)</button>
     <button data-tap="probe50" class="small">probe half</button>
@@ -236,8 +236,9 @@ def handle_cmd(c):
         elif c == "tiltdown":
             TILT["cur"] = max(74, TILT["cur"] - 2)
             link.do(lambda r: r.tilt(TILT["cur"]))
-        elif c == "panl":   link.do(lambda r: r.pan_nudge(300, "L"))
-        elif c == "panr":   link.do(lambda r: r.pan_nudge(300, "R"))
+        # pan servo retired (fried board) — the wheels are the pan axis now
+        elif c == "panl":   link.do(lambda r: r.spin(250, 140, "L"))
+        elif c == "panr":   link.do(lambda r: r.spin(250, 140, "R"))
         elif c == "probe0":   link.do(lambda r: r.probe(0))
         elif c == "probe50":  link.do(lambda r: r.probe(50))
         elif c == "probe100": link.do(lambda r: r.probe(100))
