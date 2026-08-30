@@ -59,7 +59,7 @@ const unsigned long MAX_DRIVE_MS = 10000;
 Adafruit_PWMServoDriver pca;
 const uint8_t CH_TILT = 0, CH_PROBE = 1, CH_PAN = 2;
 const int US_MIN = 600, US_MAX = 2400;
-const int US_PROBE_MIN = 750;                // fence floor lowered 2026-08-30 for deeper travel — if the carriage buzzes at full DOWN, raise this back
+const int US_PROBE_MIN = 640;                // floor lowered again for depth; LISTEN at full DOWN — buzz means raise this. Deeper than this needs re-meshing the pinion.
 // Bench-measured 2026-08-30: the rack runs MIRRORED to the design assumption,
 // so the pct->pulse map is inverted: PROBE 0 (retracted/up) = 2400 us,
 // PROBE 100 (inserted/down) = 900 us. The fence bounds are unchanged.
@@ -73,6 +73,8 @@ const uint8_t SERVO_TICK_MS = 20;
 const int HOME_US[3] = { 1500, US_MAX, 1500 };  // tilt 90, probe retracted(up), pan(disabled)
 
 float curUs[3], targetUs[3];
+bool tiltEnergized = false;   // tilt stays pulseless until first commanded —
+                              // no self-movement at plug-in (loose-horn drift guard)
 
 // ---- state ------------------------------------------------------------------
 enum DriveState { IDLE, FWD, REV, SPINL, SPINR, ARCL, ARCR, RARCL, RARCR };
@@ -164,6 +166,7 @@ void servoTick() {
   lastServoTick = now;
   for (uint8_t i = 0; i < 3; i++) {
     if (i == CH_PAN && !PAN_ENABLED) continue;  // PANSPIN owns this channel
+    if (i == CH_TILT && !tiltEnergized) continue;
     float step = SLEW_US_PER_S[i] * dt;
     float d = targetUs[i] - curUs[i];
     if (fabs(d) <= step) curUs[i] = targetUs[i];
@@ -249,6 +252,7 @@ void handleLine(char* line) {
     long deg;
     if (!parseLong(strtok(NULL, " "), &deg, 0, 180)) { err("bad_args"); return; }
     if (cmd[0] == 'P' && !PAN_ENABLED) { err("pan_disabled"); return; }
+    if (cmd[0] == 'T') tiltEnergized = true;
     targetUs[cmd[0] == 'P' ? CH_PAN : CH_TILT] = US_MIN + deg * 10.0;
     Serial.println(cmd[0] == 'P' ? F("OK PAN") : F("OK TILT"));
 
@@ -266,6 +270,7 @@ void handleLine(char* line) {
 
   } else if (strcmp(cmd, "HOME") == 0) {
     if (drive != IDLE) { err("moving"); return; }
+    tiltEnergized = true;
     for (uint8_t i = 0; i < 3; i++) targetUs[i] = HOME_US[i];
     Serial.println(F("OK HOME"));
 
@@ -298,6 +303,7 @@ void setup() {
     // instead of snapping across the rack at boot.
     curUs[i] = (i == CH_PROBE) ? US_PROBE_MIN : HOME_US[i];
     targetUs[i] = HOME_US[i];
+    if (i == CH_TILT) { pca.setPWM(CH_TILT, 0, 0); continue; }  // limp until asked
     writeServoUs(i, curUs[i]);
   }
 
