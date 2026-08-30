@@ -24,7 +24,9 @@
 //   SPIN <ms> <pwm> <L|R> -> OK SPIN
 //   STOP                  -> OK STOP
 //   PROBE <0-100>         -> OK PROBE    0 = retracted, 100 = inserted
-//   PAN <deg> / TILT <deg>-> OK PAN|TILT
+//   PAN <deg> / TILT <deg>-> OK PAN|TILT   (PAN: ERR pan_disabled — see below)
+//   PANSPIN <ms> <L|R>    -> OK PANSPIN  timed nudge of the continuous pan
+//                            servo (max 2000 ms), then power cut — it coasts
 //   HOME                  -> OK HOME
 //   STATUS -> OK <drive> <pwm> <probe> <pan> <tilt> <settled> <uptime>
 //
@@ -107,6 +109,12 @@ void startDrive(DriveState d, unsigned long ms, uint8_t pwm) {
 // gets NO pulses at all (a pulseless servo goes limp and stays still).
 const bool PAN_ENABLED = false;
 
+// Timed-nudge pan for the continuous servo: pulse off-center for a bounded
+// time, then cut pulses entirely so it stops. No absolute angle exists.
+const int PANSPIN_US_L = 1380, PANSPIN_US_R = 1620;  // gentle speed each way
+unsigned long panSpinUntil = 0;
+bool panSpinning = false;
+
 // The MG90S (probe, ch1) binds at its end-stops: hard-fence it at the
 // pulse-write level. No command gets past this.
 void writeServoUs(uint8_t ch, float us) {
@@ -137,6 +145,7 @@ void servoTick() {
   float dt = (now - lastServoTick) / 1000.0;
   lastServoTick = now;
   for (uint8_t i = 0; i < 3; i++) {
+    if (i == CH_PAN && !PAN_ENABLED) continue;  // PANSPIN owns this channel
     float step = SLEW_US_PER_S[i] * dt;
     float d = targetUs[i] - curUs[i];
     if (fabs(d) <= step) curUs[i] = targetUs[i];
@@ -221,6 +230,18 @@ void handleLine(char* line) {
     targetUs[cmd[0] == 'P' ? CH_PAN : CH_TILT] = US_MIN + deg * 10.0;
     Serial.println(cmd[0] == 'P' ? F("OK PAN") : F("OK TILT"));
 
+  } else if (strcmp(cmd, "PANSPIN") == 0) {
+    char* msTok = strtok(NULL, " ");
+    char* sideTok = strtok(NULL, " ");
+    long ms;
+    if (!parseLong(msTok, &ms, 1, 2000) || sideTok == NULL || sideTok[1] != '\0'
+        || (sideTok[0] != 'L' && sideTok[0] != 'R')) { err("bad_args"); return; }
+    int us = (sideTok[0] == 'L') ? PANSPIN_US_L : PANSPIN_US_R;
+    pca.setPWM(CH_PAN, 0, (int)(us * 4096.0 / 20000.0 + 0.5));
+    panSpinUntil = millis() + ms;
+    panSpinning = true;
+    Serial.println(F("OK PANSPIN"));
+
   } else if (strcmp(cmd, "HOME") == 0) {
     if (drive != IDLE) { err("moving"); return; }
     for (uint8_t i = 0; i < 3; i++) targetUs[i] = HOME_US[i];
@@ -278,6 +299,10 @@ void loop() {
   if (drive != IDLE) {
     if ((long)(now - driveStopAt) >= 0) stopMotors();
     else if (now - lastRxMs > WATCHDOG_MS) stopMotors();
+  }
+  if (panSpinning && (long)(now - panSpinUntil) >= 0) {
+    pca.setPWM(CH_PAN, 0, 0);   // cut pulses — continuous servo coasts to a stop
+    panSpinning = false;
   }
   servoTick();
 }
