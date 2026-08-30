@@ -47,8 +47,10 @@ def test_connect_syncs_on_ready_banner():
     assert fake.written == ["PING"]
 
 
-def test_connect_times_out_without_ready():
-    r = Rover(transport=FakeSerial(boot_lines=()), ready_timeout=0.2)
+def test_connect_times_out_when_board_is_dead():
+    # no READY banner AND no PING reply = genuinely unreachable
+    fake = FakeSerial(boot_lines=(), responses={"PING": []})
+    r = Rover(transport=fake, ready_timeout=0.2, cmd_timeout=0.3)
     with pytest.raises(RoverTimeout):
         r.connect()
 
