@@ -46,7 +46,9 @@ const uint8_t RR[3] = {  6, 13,   2 };   // rear-right   board2 ENB/IN3/IN4
 const uint8_t* MOTOR[4] = { FL, RL, FR, RR };
 
 // Flip per motor if it runs backward — never touch the EN pins.
-const bool FWD_HIGH[4] = { true, true, true, true };   // FL RL FR RR
+// Bench-measured 2026-08-30: both REAR motors are wired mirror-image
+// to the fronts (FWD ran fronts fwd + rears back), so RL and RR flip.
+const bool FWD_HIGH[4] = { true, false, true, false };   // FL RL FR RR
 
 // 3-6 V TT motors on a ~9 V rail (3S minus the L298 drop).
 const uint8_t MAX_PWM = 160;
