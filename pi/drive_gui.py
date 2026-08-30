@@ -129,9 +129,13 @@ button:active{background:var(--daisyw);box-shadow:inset 0 0 0 1.5px var(--daisy)
 .row button{flex:1;padding:12px 0}
 .small{font-size:11.5px}
 .reconnect{background:var(--leafw);color:var(--leaf)}
+#estop{display:block;width:100%;background:var(--fail);color:#fff;font:600 15px var(--mono);
+ letter-spacing:.06em;padding:14px 0;border-radius:12px;margin:0 0 14px;box-shadow:var(--sh)}
+#estop:active{filter:brightness(.85)}
 </style></head><body><div class="wrap">
 <h1>Rover Remote</h1>
 <div class="status" id="st">connecting…</div>
+<button id="estop">■ STOP EVERYTHING</button>
 <div class="cols">
  <div class="feed" id="feed"><span>camera warming up…</span></div>
  <div>
@@ -142,15 +146,15 @@ button:active{background:var(--daisyw);box-shadow:inset 0 0 0 1.5px var(--daisy)
     <button data-hold="spinl">⟲</button><button class="stop" data-tap="stop">STOP</button><button data-hold="spinr">⟳</button>
     <span></span><button data-hold="rev">▼</button><span></span>
    </div>
-   <h2>Camera</h2>
-   <div class="row"><button data-tap="tiltup" class="small">tilt ▲</button>
-    <button data-tap="tiltdown" class="small">tilt ▼</button></div>
-   <div class="row"><button data-tap="panl" class="small">pan ◀</button>
-    <button data-tap="panr" class="small">pan ▶</button></div>
-   <h2>Probe</h2>
-   <div class="row"><button data-tap="probe0" class="small">retract</button>
-    <button data-tap="probe50" class="small">half</button>
-    <button data-tap="probe100" class="small">full</button></div>
+   <h2>Camera — aim what the rover sees</h2>
+   <div class="row"><button data-tap="tiltup" class="small">👀 look UP</button>
+    <button data-tap="tiltdown" class="small">👀 look DOWN</button></div>
+   <div class="row"><button data-tap="panl" class="small">↰ turn head LEFT</button>
+    <button data-tap="panr" class="small">↱ turn head RIGHT</button></div>
+   <h2>Soil probe</h2>
+   <div class="row"><button data-tap="probe0" class="small">⬆ probe UP (safe)</button>
+    <button data-tap="probe50" class="small">probe half</button>
+    <button data-tap="probe100" class="small">⬇ probe DOWN</button></div>
    <div class="row"><button data-tap="home" class="small">HOME</button>
     <button data-tap="reconnect" class="small reconnect">reconnect</button></div>
   </div>
@@ -175,6 +179,12 @@ let keyTimer=null, curKey=null;
 addEventListener("keydown", e=>{ const c=keys[e.key]; if(!c||curKey===e.key) return;
   curKey=e.key; cmd(c); keyTimer=setInterval(()=>cmd(c),300); });
 addEventListener("keyup", e=>{ if(keys[e.key]&&curKey===e.key){ clearInterval(keyTimer); curKey=null; cmd("stop"); }});
+function killTimers(){ if(holdTimer){clearInterval(holdTimer);holdTimer=null}
+  if(keyTimer){clearInterval(keyTimer);keyTimer=null;curKey=null} }
+document.getElementById("estop").addEventListener("click", async ()=>{
+  killTimers(); await cmd("stop"); setTimeout(()=>cmd("stop"), 300);
+  st.innerHTML = '<span class="off">ALL STOP sent</span>';
+});
 async function poll(){ const s = await cmd("status");
   st.innerHTML = s.err ? `<span class="off">rover offline</span> — ${s.err}`
     : `<span class="on">online</span> · ${s.drive} · probe ${s.probe}% · pan ${s.pan}° · tilt ${s.tilt}°`;
