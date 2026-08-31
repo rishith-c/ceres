@@ -37,6 +37,10 @@ h1{font:600 clamp(58px,11vw,120px)/0.95 "Source Serif 4",Georgia,serif;letter-sp
 .wide .chunk{flex:1;min-width:160px}
 .sect{font:500 12px "IBM Plex Mono",monospace;letter-spacing:.18em;text-transform:uppercase;
   color:#FFD9A0;margin:44px 0 14px}
+.pot{--pc:#57945B;background:linear-gradient(180deg,color-mix(in srgb,var(--pc) 82%,#1A1B3A),var(--pc));
+  border-radius:10px;padding:14px 12px;text-align:center;border:1px solid rgba(255,233,196,.25)}
+.pot b{display:block;font:600 12.5px "IBM Plex Mono",monospace;color:#FFF8EC;letter-spacing:.03em}
+.pot span{font:500 22px "IBM Plex Mono",monospace;color:#FFF8EC;text-shadow:0 1px 8px rgba(26,27,58,.5)}
 footer{position:relative;z-index:2;text-align:center;color:#E8C79B;font-size:12px;
   padding:0 20px 6vh;text-shadow:0 1px 12px rgba(26,27,58,.6)}
 </style></head><body>
@@ -86,6 +90,71 @@ footer{position:relative;z-index:2;text-align:center;color:#E8C79B;font-size:12p
         <div class="d">below it, Ceres says “needs a human” instead of guessing</div></div>
       <div class="chunk"><div class="n">2/4</div><div class="l">frames must agree</div>
         <div class="d">one suspicious photo never convicts a plant</div></div>
+    </div>
+  </div>
+
+  <div class="sect">The sensors</div>
+  <div class="grid">
+    <div class="card" style="grid-column:1/-1">
+      <div class="l" style="margin-bottom:12px">Field moisture heatmap — two rows of three pots</div>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px">
+        <div class="pot" style="--pc:#4E8C55"><b>plant-1</b><span>0.52</span></div>
+        <div class="pot" style="--pc:#E8B45A"><b>plant-2</b><span>0.18</span></div>
+        <div class="pot" style="--pc:#57945B"><b>plant-3</b><span>0.47</span></div>
+        <div class="pot" style="--pc:#3F7E63"><b>plant-4</b><span>0.61</span></div>
+        <div class="pot" style="--pc:#5E9A58"><b>plant-5</b><span>0.44</span></div>
+        <div class="pot" style="--pc:#6FA35C"><b>plant-6</b><span>0.39</span></div>
+      </div>
+      <div class="d" style="margin-top:10px">color: sand (dry) → deep green (wet) · plant-2 is the outlier begging for water</div>
+    </div>
+
+    <div class="card" style="grid-column:1/-1">
+      <div class="l" style="margin-bottom:6px">Soil moisture through the day</div>
+      <svg viewBox="0 0 640 190" style="width:100%;height:auto" role="img"
+           aria-label="Line chart of moisture for three plants over 24 hours">
+        <g stroke="rgba(255,233,196,.16)" stroke-width="1">
+          <line x1="46" y1="20" x2="46" y2="150"/><line x1="46" y1="150" x2="620" y2="150"/>
+          <line x1="46" y1="63" x2="620" y2="63" stroke-dasharray="3 5"/>
+          <line x1="46" y1="107" x2="620" y2="107" stroke-dasharray="3 5"/>
+        </g>
+        <g font-family="IBM Plex Mono,monospace" font-size="11" fill="#F3C99B">
+          <text x="38" y="24" text-anchor="end">.6</text>
+          <text x="38" y="67" text-anchor="end">.4</text>
+          <text x="38" y="111" text-anchor="end">.2</text>
+          <text x="46" y="168">6am</text><text x="320" y="168" text-anchor="middle">noon</text>
+          <text x="620" y="168" text-anchor="end">6pm</text>
+        </g>
+        <polyline fill="none" stroke="#8FD48E" stroke-width="2"
+          points="46,42 128,46 210,50 292,55 374,38 456,41 538,45 620,48"/>
+        <polyline fill="none" stroke="#7FBFD8" stroke-width="2"
+          points="46,58 128,60 210,62 292,64 374,66 456,68 538,70 620,72"/>
+        <polyline fill="none" stroke="#E8B45A" stroke-width="2"
+          points="46,88 128,96 210,104 292,111 374,118 456,124 538,130 620,136"/>
+        <g font-family="IBM Plex Mono,monospace" font-size="11.5">
+          <text x="626" y="51" fill="#8FD48E">p1 (watered)</text>
+          <text x="626" y="75" fill="#7FBFD8">p3</text>
+          <text x="626" y="139" fill="#E8B45A">p2 drying</text>
+        </g>
+      </svg>
+      <div class="d">the amber line is why the rover flags plant-2: steady decline, no recovery — that is thirst, not disease</div>
+    </div>
+
+    <div class="card wide">
+      <div class="chunk"><div class="n">21.4<small>°C</small></div><div class="l">soil temperature</div>
+        <div class="d">probe die sensor · dwell 3 s before reading</div></div>
+      <div class="chunk"><div class="n">0.18–0.61</div><div class="l">moisture spread</div>
+        <div class="d">two-point calibrated: dry air = 0, water = 1</div></div>
+      <div class="chunk"><div class="n">3<small>/plant</small></div><div class="l">readings fused</div>
+        <div class="d">probe + camera + rule table = one verdict</div></div>
+    </div>
+
+    <div class="card" style="grid-column:1/-1;border-color:rgba(255,214,112,.45)">
+      <div class="l" style="margin-bottom:8px">Farmer’s card — what to actually do</div>
+      <div class="d" style="font-size:14px;line-height:1.7">
+        💧 <b>Water plant-2 today</b> — moisture 0.18 and falling all day, leaves are fine.<br>
+        🔍 <b>Inspect plant-3’s leaves</b> — spotted anomaly flagged as pest; moisture is normal, so don’t water more.<br>
+        ✅ Everything else: no action. Ceres will re-check on the next pass.
+      </div>
     </div>
   </div>
 </div>
