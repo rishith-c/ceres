@@ -1,0 +1,93 @@
+<!doctype html><html><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Ceres — Farm Board</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+*{box-sizing:border-box;margin:0}
+html,body{height:100%}
+body{
+  font:15px/1.5 -apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",sans-serif;
+  color:#FFF8EC; overflow-x:hidden;
+  background:
+    radial-gradient(120% 90% at 50% 108%, rgba(255,214,112,.55) 0%, rgba(255,170,90,.28) 34%, transparent 62%),
+    linear-gradient(180deg,#1A1B3A 0%,#33305E 26%,#7A4A6B 48%,#C96F5A 66%,#EFA45C 80%,#F7C86B 100%);
+  background-attachment:fixed;
+}
+.sun{position:fixed;left:50%;bottom:16vh;width:34vmin;height:34vmin;transform:translateX(-50%);
+  border-radius:50%;background:radial-gradient(circle,#FFE9A8 0%,#FFC96B 55%,rgba(255,201,107,0) 72%);
+  filter:blur(2px);opacity:.9;z-index:0;animation:breathe 9s ease-in-out infinite}
+@keyframes breathe{50%{opacity:.75;transform:translateX(-50%) scale(1.04)}}
+@media(prefers-reduced-motion:reduce){.sun{animation:none}}
+.hills{position:fixed;left:0;right:0;bottom:0;z-index:1;pointer-events:none}
+.wrap{position:relative;z-index:2;max-width:1080px;margin:0 auto;padding:7vh 28px 20vh}
+.crown{font:500 12px "IBM Plex Mono",monospace;letter-spacing:.22em;color:#FFD9A0;
+  text-transform:uppercase;margin-bottom:14px}
+h1{font:600 clamp(58px,11vw,120px)/0.95 "Source Serif 4",Georgia,serif;letter-spacing:-.015em;
+  text-shadow:0 2px 40px rgba(26,27,58,.55)}
+.tag{font-size:clamp(15px,2vw,19px);color:#FFE9C4;max-width:52ch;margin:16px 0 44px;
+  text-shadow:0 1px 18px rgba(26,27,58,.5)}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(215px,1fr));gap:14px}
+.card{background:rgba(26,27,58,.34);border:1px solid rgba(255,233,196,.22);border-radius:14px;
+  padding:18px 20px;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}
+.card .n{font:500 34px/1.1 "IBM Plex Mono",monospace;color:#FFE9A8}
+.card .n small{font-size:16px;color:#FFD9A0}
+.card .l{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:#F3C99B;margin-top:6px}
+.card .d{font-size:12.5px;color:#EAD7BC;margin-top:8px;line-height:1.45}
+.wide{grid-column:1/-1;display:flex;flex-wrap:wrap;gap:26px;align-items:baseline}
+.wide .chunk{flex:1;min-width:160px}
+.sect{font:500 12px "IBM Plex Mono",monospace;letter-spacing:.18em;text-transform:uppercase;
+  color:#FFD9A0;margin:44px 0 14px}
+footer{position:relative;z-index:2;text-align:center;color:#E8C79B;font-size:12px;
+  padding:0 20px 6vh;text-shadow:0 1px 12px rgba(26,27,58,.6)}
+</style></head><body>
+<div class="sun"></div>
+<svg class="hills" viewBox="0 0 1440 260" preserveAspectRatio="none" height="26vh" width="100%">
+  <path d="M0,120 C240,70 420,150 720,110 C1020,70 1200,140 1440,100 L1440,260 L0,260 Z" fill="#3E5C33" opacity=".85"/>
+  <path d="M0,170 C300,130 560,200 880,160 C1160,126 1320,180 1440,150 L1440,260 L0,260 Z" fill="#2C4526"/>
+  <path d="M0,215 C360,185 700,235 1080,205 C1260,192 1380,215 1440,205 L1440,260 L0,260 Z" fill="#1D301A"/>
+</svg>
+<div class="wrap">
+  <div class="crown">Berkeley Robotics Hackathon · Field Triage Rover</div>
+  <h1>CERES</h1>
+  <p class="tag">A rover that tells you <em>why</em> a plant is suffering — thirst, disease,
+  or pests — by probing the soil, studying the leaves, and fusing both into one honest
+  verdict per plant.</p>
+
+  <div class="sect">The field</div>
+  <div class="grid">
+    <div class="card"><div class="n">6</div><div class="l">plants monitored</div>
+      <div class="d">one verdict each, cause attached</div></div>
+    <div class="card"><div class="n">4 <small>fine</small></div><div class="l">healthy &amp; watered</div>
+      <div class="d">moisture normal · leaves clear</div></div>
+    <div class="card"><div class="n">1 <small>dry</small></div><div class="l">underwatered</div>
+      <div class="d">moisture 0.18 — water it, leaves are fine</div></div>
+    <div class="card"><div class="n">1 <small>sick</small></div><div class="l">diseased · pest</div>
+      <div class="d">moisture normal but leaves anomalous — not a watering problem</div></div>
+  </div>
+
+  <div class="sect">The machine</div>
+  <div class="grid">
+    <div class="card"><div class="n">2</div><div class="l">brains</div>
+      <div class="d">Mega runs reflexes on a 400&nbsp;ms watchdog; the Pi thinks, streams, and serves</div></div>
+    <div class="card"><div class="n">4+2</div><div class="l">motors + servos</div>
+      <div class="d">skid-steer drive · fenced tilt · rack-and-pinion soil probe</div></div>
+    <div class="card"><div class="n">3</div><div class="l">safety fences</div>
+      <div class="d">every joint limited to travel measured on the real hardware</div></div>
+    <div class="card"><div class="n">46</div><div class="l">automated tests</div>
+      <div class="d">driver, fusion table, calibration, vision abstention — all green on the Pi</div></div>
+  </div>
+
+  <div class="sect">The judgment</div>
+  <div class="grid">
+    <div class="card wide">
+      <div class="chunk"><div class="n">9</div><div class="l">fusion rules</div>
+        <div class="d">moisture × leaf state — a table, not a vibe</div></div>
+      <div class="chunk"><div class="n">0.70</div><div class="l">confidence floor</div>
+        <div class="d">below it, Ceres says “needs a human” instead of guessing</div></div>
+      <div class="chunk"><div class="n">2/4</div><div class="l">frames must agree</div>
+        <div class="d">one suspicious photo never convicts a plant</div></div>
+    </div>
+  </div>
+</div>
+<footer>field numbers are demo data · machine numbers are real · served by the rover’s own Raspberry Pi</footer>
+</body></html>

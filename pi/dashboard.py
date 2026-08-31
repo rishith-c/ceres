@@ -138,6 +138,15 @@ setInterval(async () => {{
 
 class H(BaseHTTPRequestHandler):
     def do_GET(self):
+        if self.path.rstrip("/") == "/farm":
+            farm = Path(__file__).parent / "farm.html"
+            body = farm.read_bytes() if farm.exists() else b"farm.html missing"
+            self.send_response(200)
+            self.send_header("Content-Type", "text/html; charset=utf-8")
+            self.send_header("Content-Length", str(len(body)))
+            self.end_headers()
+            self.wfile.write(body)
+            return
         body = render().encode()
         self.send_response(200)
         self.send_header("Content-Type", "text/html; charset=utf-8")
