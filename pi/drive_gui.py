@@ -96,6 +96,73 @@ class Link:
 cam = Cam()
 link = Link()
 
+# ---------------- ambient "alive" mode: gentle tilt sway when idle ----------
+import random
+AMBIENT = {"on": False, "last_user": 0.0}
+
+def _ambient_loop():
+    poses = [88, 96, 104, 96, 92, 100]
+    i = 0
+    while True:
+        time.sleep(2.5)
+        if not AMBIENT["on"]:
+            continue
+        if time.time() - AMBIENT["last_user"] < 8:
+            continue                     # a human drove recently — stay out of the way
+        try:
+            t = poses[i % len(poses)] + random.randint(-2, 2)
+            link.do(lambda r: r.tilt(max(74, min(118, t))))
+            i += 1
+        except Exception:
+            pass
+
+threading.Thread(target=_ambient_loop, daemon=True).start()
+
+# ---------------- one-button kinematic show for demo filming ----------------
+SHOW = {"running": False, "abort": False}
+
+def _drive_and_wait(fn, max_s=3.0):
+    link.do(fn)
+    t0 = time.time()
+    while time.time() - t0 < max_s:
+        st = link.do(lambda r: r.status())      # polling = watchdog keepalive
+        if st.drive == "IDLE":
+            return
+        time.sleep(0.15)
+
+def _show_thread():
+    try:
+        steps_servo = [("tilt", 84, 1.2), ("tilt", 112, 1.6), ("tilt", 96, 1.0)]
+        for kind, val, pause in steps_servo:
+            if SHOW["abort"]: return
+            link.do(lambda r, v=val: r.tilt(v)); time.sleep(pause)
+        if SHOW["abort"]: return
+        link.do(lambda r: r.probe(70)); time.sleep(2.2)     # soil-sample mime
+        link.do(lambda r: r.probe(0)); time.sleep(2.0)
+        for cmd_fn in [lambda r: r.forward(700, 140),
+                       lambda r: r.spin(450, 140, "L"),
+                       lambda r: r.spin(450, 140, "R"),
+                       lambda r: r.arc(600, 140, "L"),
+                       lambda r: r.reverse(600, 140)]:
+            if SHOW["abort"]: return
+            _drive_and_wait(cmd_fn); time.sleep(0.35)
+        for v, pause in [(88, 0.9), (106, 0.9), (96, 0.8)]:  # bow to camera
+            if SHOW["abort"]: return
+            link.do(lambda r, vv=v: r.tilt(vv)); time.sleep(pause)
+    except Exception:
+        pass
+    finally:
+        try: link.do(lambda r: r.stop())
+        except Exception: pass
+        SHOW["running"] = False
+
+def start_show():
+    if SHOW["running"]:
+        return False
+    SHOW["running"], SHOW["abort"] = True, False
+    threading.Thread(target=_show_thread, daemon=True).start()
+    return True
+
 PAGE = """<!doctype html><html><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
 <title>Rover Remote</title>
@@ -157,6 +224,8 @@ button:active{background:var(--daisyw);box-shadow:inset 0 0 0 1.5px var(--daisy)
     <button data-tap="probe100" class="small">⬇ probe DOWN</button></div>
    <div class="row"><button data-tap="home" class="small">HOME</button>
     <button data-tap="reconnect" class="small reconnect">reconnect</button></div>
+   <div class="row"><button data-tap="show" class="small" style="background:#FBF3DA;color:#8A6B18;font-weight:600">🎬 KINEMATIC SHOW (~30s)</button></div>
+   <div class="row"><button id="amb" class="small" aria-pressed="false">🌿 ambient look: OFF</button></div>
   </div>
  </div>
 </div></div>
@@ -192,8 +261,17 @@ function killTimers(){ if(holdTimer){clearInterval(holdTimer);holdTimer=null}
   if(repTimer){clearInterval(repTimer);repTimer=null}
   if(keyTimer){clearInterval(keyTimer);keyTimer=null;curKey=null} }
 document.getElementById("estop").addEventListener("click", async ()=>{
-  killTimers(); await cmd("stop"); setTimeout(()=>cmd("stop"), 300);
+  killTimers(); await cmd("showstop"); await cmd("ambientoff"); await cmd("stop"); setTimeout(()=>cmd("stop"), 300);
+  const a = document.getElementById("amb");
+  a.textContent = "🌿 ambient look: OFF"; a.setAttribute("aria-pressed","false");
   st.innerHTML = '<span class="off">ALL STOP sent</span>';
+});
+let ambOn = false;
+document.getElementById("amb").addEventListener("click", async e=>{
+  ambOn = !ambOn;
+  await cmd(ambOn ? "ambienton" : "ambientoff");
+  e.target.textContent = "🌿 ambient look: " + (ambOn ? "ON" : "OFF");
+  e.target.setAttribute("aria-pressed", String(ambOn));
 });
 async function poll(){ const s = await cmd("status");
   st.innerHTML = s.err ? `<span class="off">rover offline</span> — ${s.err}`
@@ -210,6 +288,18 @@ TILT = {"cur": 96}
 
 
 def handle_cmd(c):
+    AMBIENT["last_user"] = time.time()
+    if c == "showstop":
+        SHOW["abort"] = True
+        return {"ok": True}
+    if c == "show":
+        return {"ok": start_show(), "note": "showtime" if not SHOW["running"] else "running"}
+    if c == "ambienton":
+        AMBIENT["on"] = True
+        return {"ok": True, "ambient": True}
+    if c == "ambientoff":
+        AMBIENT["on"] = False
+        return {"ok": True, "ambient": False}
     if c == "reconnect":
         return {"ok": link.connect(), "err": link.error}
     if c == "status":
