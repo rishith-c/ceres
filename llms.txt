@@ -1,0 +1,41 @@
+# CERES — Field Triage Rover
+
+> Autonomous plant-triage rover (Berkeley Robotics Hackathon). Fuses capacitive soil
+> moisture and VLM leaf diagnosis into one cause-tagged verdict per plant through an
+> explicit 9-rule decision table with first-class abstention. Dual-controller: ATmega2560
+> real-time layer (serial protocol, 400 ms watchdog, pulse-level joint fences) under a
+> Raspberry Pi 4 (vision, teleoperation web UI, systemd services), with heavy CV on a
+> laptop closing a visual-servo loop over WiFi.
+
+Key claims and where the evidence lives:
+- Safety fences were measured on the physical hardware, not assumed: STATUS.md (tilt
+  74–118° by successive approximation; probe pulse-window bounded; both clamped at the
+  pulse-write level in firmware/rover_motion/rover_motion.ino)
+- 46 automated hardware-free tests pass on the target Pi: pi/tests/ (run: cd pi && pytest tests)
+- Every failure is documented with root cause, not hidden: README.md "Honest ledger", STATUS.md
+- Pre-hackathon vs event work is separable by git history (see README "Provenance")
+
+## Core documents
+- [README.md](README.md): project story, system map, honest ledger, provenance
+- [ARCHITECTURE.md](ARCHITECTURE.md): protocol timing model, fence calibration method,
+  fusion-table semantics, control-loop constants, power tree, failure root-causes
+- [STATUS.md](STATUS.md): living build log — every milestone, defect, and decision, dated
+- [HANDOFF.md](HANDOFF.md): the original verified design document (pre-build)
+
+## Code
+- [firmware/rover_motion/rover_motion.ino](firmware/rover_motion/rover_motion.ino):
+  the real firmware — serial slave, timed motion, watchdog, fences, interlocks
+- [pi/rover.py](pi/rover.py): serial driver (READY/PING sync, typed errors, keepalive helpers)
+- [pi/triage.py](pi/triage.py): the never-cut fusion table; `python3 pi/triage.py` prints it
+- [pi/station.py](pi/station.py): per-plant scan — fenced poses, 2-of-4 frame voting
+- [pi/leaf.py](pi/leaf.py): Claude-vision leaf classifier (disease|pest cause, abstains on any failure)
+- [pi/soil.py](pi/soil.py): two-point moisture calibration + boot self-check (fault ≠ drought)
+- [pi/drive_gui.py](pi/drive_gui.py): phone teleoperation + MJPEG + kinematic show (systemd)
+- [pi/dashboard.py](pi/dashboard.py): live plant board + /farm display
+- [mac_tools/track_leaf_nn.py](mac_tools/track_leaf_nn.py): YOLOv5n visual servoing with
+  pan-polarity self-learning
+- [pi/tests/](pi/tests/): the 46-test suite
+
+## Bench tools (not the product)
+- firmware/motor_test*, firmware/*demo*, firmware/probe_limit_finder, firmware/pan_center_test:
+  diagnostic sketches used during bring-up; each earned a fix recorded in STATUS.md

@@ -3,7 +3,13 @@
 **A rover that tells you *why* a plant is suffering — thirst, disease, or pests — by
 probing the soil, studying the leaves, and fusing both into one honest verdict per plant.**
 
+![tests](https://img.shields.io/badge/tests-46%20passing%20on--target-2ea44f)
+![firmware](https://img.shields.io/badge/reflexes-ATmega2560-blue)
+![brain](https://img.shields.io/badge/brain-Raspberry%20Pi%204-c51a4a)
+![vision](https://img.shields.io/badge/vision-YOLOv5n%20%2B%20Claude%20VLM-8a2be2)
+
 Built by **Rishith Chennupati & Varun Chilukuri** for the Berkeley Robotics Hackathon.
+Deep technical companion: **[ARCHITECTURE.md](ARCHITECTURE.md)** · agent index: **[llms.txt](llms.txt)**
 
 Every plant monitor gives you numbers. Ceres gives you a diagnosis — and when it isn't
 sure, it says **"needs a human"** instead of guessing. Abstention is a feature.
@@ -12,11 +18,29 @@ sure, it says **"needs a human"** instead of guessing. Abstention is a feature.
 
 ## How it thinks
 
+```mermaid
+graph LR
+  A[soil probe<br/>capacitive · 2-pt calibrated] --> C
+  B[camera · 4 fenced poses] --> V[VLM leaf classifier<br/>disease vs pest · confidence-gated]
+  V --> M[2-of-4 frame vote<br/>abstain by default] --> C[9-rule fusion table<br/>moisture × leaf]
+  C --> R[one cause-tagged verdict<br/>fine · dry · sick · needs human]
 ```
-soil probe (capacitive, 2-pt calibrated)──┐
-                                          ├─► 9-rule fusion table ─► one cause-tagged
-camera ─► 4 poses ─► VLM leaf classifier ─┘        (moisture × leaf)     verdict per plant
-          (disease vs pest, confidence-gated, 2-of-4 frames must agree)
+
+And one full plant stop, as the machines see it:
+
+```mermaid
+sequenceDiagram
+  participant Pi
+  participant Mega
+  participant Servo as Probe/Tilt
+  Pi->>Mega: PROBE 100
+  Mega->>Servo: slewed, pulse-fenced descent
+  Note over Mega: FWD refused while probe deployed
+  Pi->>Mega: STATUS (settled?) — doubles as watchdog keepalive
+  Pi->>Pi: read moisture · dwell · retract
+  Pi->>Mega: TILT poses ×4 → capture ×4
+  Pi->>Pi: classify ×4 → vote → fuse
+  Pi-->>Pi: verdict → live plant board
 ```
 
 The fusion table is explicit and total — a judge asking "what happens at moisture 0.42
