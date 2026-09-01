@@ -3,12 +3,18 @@
 **A rover that tells you *why* a plant is suffering — thirst, disease, or pests — by
 probing the soil, studying the leaves, and fusing both into one honest verdict per plant.**
 
+![award](https://img.shields.io/badge/%F0%9F%8F%86%202nd%20place-Berkeley%20Robotics%20Hackathon%202026-E9C64A)
 ![tests](https://img.shields.io/badge/tests-46%20passing%20on--target-2ea44f)
 ![firmware](https://img.shields.io/badge/reflexes-ATmega2560-blue)
 ![brain](https://img.shields.io/badge/brain-Raspberry%20Pi%204-c51a4a)
 ![vision](https://img.shields.io/badge/vision-YOLOv5n%20%2B%20Claude%20VLM-8a2be2)
 
-Built by **Rishith Chennupati & Varun Chilukuri** for the Berkeley Robotics Hackathon.
+## Awards
+
+**🏆 2nd Place, Berkeley Robotics Hackathon 2026** (UC Berkeley eHub, August 31) —
+won by the only high-school team at a predominantly UC Berkeley student event.
+
+Built by **Rishith Chennupati & Varun Chilukuri**.
 Deep technical companion: **[ARCHITECTURE.md](ARCHITECTURE.md)** · agent index: **[llms.txt](llms.txt)**
 
 Every plant monitor gives you numbers. Ceres gives you a diagnosis — and when it isn't
