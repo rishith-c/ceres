@@ -21,7 +21,7 @@ Every plant monitor gives you numbers. Ceres gives you a diagnosis — and when 
 sure, it says **"needs a human"** instead of guessing. Abstention is a feature.
 
 ---
-
+ 
 ## How it thinks
 
 ```mermaid
